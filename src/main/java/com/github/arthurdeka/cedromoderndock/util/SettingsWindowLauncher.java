@@ -20,7 +20,8 @@ public final class SettingsWindowLauncher {
     public static void open(
             AppServices appServices,
             Runnable dockRefreshAction,
-            Consumer<DockPositioningMode> positioningModeChangeAction
+            Consumer<DockPositioningMode> positioningModeChangeAction,
+            Consumer<Boolean> showDesktopProtectionChangeAction
     ) {
         try {
             FXMLLoader loader = new FXMLLoader(App.class.getResource("fxml/DockSettingsView.fxml"));
@@ -30,6 +31,7 @@ public final class SettingsWindowLauncher {
             settingsController.setAppServices(appServices);
             settingsController.setDockRefreshAction(dockRefreshAction);
             settingsController.setPositioningModeChangeAction(positioningModeChangeAction);
+            settingsController.setShowDesktopProtectionChangeAction(showDesktopProtectionChangeAction);
             settingsController.handleInitialization();
 
             Stage stage = new Stage();

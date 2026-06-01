@@ -49,6 +49,9 @@ public class DockModel {
     @Getter
     @Setter
     private SupportedLanguage language = SupportedLanguage.EN_US;
+    @Getter
+    @Setter
+    private boolean showDesktopProtectionEnabled = true;
 
     public void addItem(DockItem item) {
         items.add(item);

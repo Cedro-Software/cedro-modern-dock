@@ -40,6 +40,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.function.Consumer;
 
 import com.github.arthurdeka.cedromoderndock.util.SettingsWindowLauncher;
 
@@ -72,6 +73,7 @@ public class DockController {
     });
     private final Map<String, List<Circle>> programIndicators = new HashMap<>();
     private final Rectangle dockClip = new Rectangle();
+    private Consumer<Boolean> showDesktopProtectionChangeAction = enabled -> {};
     // Monotonic id to ignore stale async results from previous hover requests.
     private int hoverRequestId = 0;
     private final Runnable localizationListener = this::updateDockUI;
@@ -454,7 +456,8 @@ public class DockController {
         SettingsWindowLauncher.open(
                 appServices,
                 this::updateDockUI,
-                this::handlePositioningModeChange
+                this::handlePositioningModeChange,
+                showDesktopProtectionChangeAction
         );
     }
 
@@ -519,6 +522,10 @@ public class DockController {
 
     public void setAppServices(AppServices appServices) {
         this.appServices = appServices;
+    }
+
+    public void setShowDesktopProtectionChangeAction(Consumer<Boolean> showDesktopProtectionChangeAction) {
+        this.showDesktopProtectionChangeAction = showDesktopProtectionChangeAction;
     }
 
     private void handlePositioningModeChange(DockPositioningMode positioningMode) {

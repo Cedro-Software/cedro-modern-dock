@@ -18,6 +18,7 @@ import com.github.arthurdeka.cedromoderndock.infrastructure.system.JnaWindowQuer
 import com.github.arthurdeka.cedromoderndock.model.DockPositioningMode;
 import com.github.arthurdeka.cedromoderndock.util.SettingsWindowLauncher;
 import com.github.arthurdeka.cedromoderndock.util.SingleInstanceGuard;
+import com.github.arthurdeka.cedromoderndock.util.NativeWindowUtils;
 import com.github.arthurdeka.cedromoderndock.util.SystemTrayManager;
 import javafx.application.Application;
 import javafx.application.Platform;
@@ -35,15 +36,11 @@ import static com.github.arthurdeka.cedromoderndock.util.UIUtils.setStageIcon;
 public class App extends Application {
     private static SingleInstanceGuard singleInstanceGuard;
     private SystemTrayManager systemTrayManager;
+    private AutoCloseable desktopDockWatcher;
 
     @Override
     public void start(Stage primaryStage) throws IOException {
         AppServices appServices = createServices();
-
-        // invisble primary stage to dont show the dock icon in the taskbar
-        primaryStage.initStyle(StageStyle.UTILITY);
-        primaryStage.setOpacity(0);
-        primaryStage.show();
 
         // creates a new stage for the dock
         Stage dockStage = new Stage();
@@ -55,8 +52,6 @@ public class App extends Application {
         // configuring dock stage.
         dockStage.setTitle("Cedro Modern Dock");
         setStageIcon(dockStage);
-        // defining the invisible window as the "owner" of the dock (this makes the dock invisible).
-        dockStage.initOwner(primaryStage);
         dockStage.initStyle(StageStyle.TRANSPARENT);
         scene.setFill(Color.TRANSPARENT);
         dockStage.setScene(scene);
@@ -64,6 +59,9 @@ public class App extends Application {
         DockController dockController = loader.getController();
         dockController.setStage(dockStage);
         dockController.setAppServices(appServices);
+        dockController.setShowDesktopProtectionChangeAction(enabled ->
+                handleShowDesktopProtectionChange(appServices, dockStage, enabled)
+        );
         dockController.handleInitialization();
 
         dockStage.iconifiedProperty().addListener((observable, wasIconified, isIconified) -> {
@@ -72,15 +70,22 @@ public class App extends Application {
             }
 
             Platform.runLater(() -> {
+                if (!appServices.dockService().getDock().isShowDesktopProtectionEnabled()) {
+                    return;
+                }
                 dockStage.setIconified(false);
                 if (!dockStage.isShowing()) {
                     dockStage.show();
                 }
+                NativeWindowUtils.configureDesktopDockWindow(dockStage);
+                NativeWindowUtils.refreshDockZOrderForShowDesktop(dockStage);
             });
         });
 
         Platform.setImplicitExit(false);
         dockStage.show();
+        NativeWindowUtils.configureDesktopDockWindow(dockStage);
+        updateShowDesktopProtection(dockStage, appServices.dockService().getDock().isShowDesktopProtectionEnabled());
         appServices.positioningService().applyPosition(dockStage);
         systemTrayManager = new SystemTrayManager(
                 () -> openSettingsWindow(appServices, dockController, dockStage),
@@ -94,6 +99,14 @@ public class App extends Application {
         if (systemTrayManager != null) {
             systemTrayManager.dispose();
             systemTrayManager = null;
+        }
+        if (desktopDockWatcher != null) {
+            try {
+                desktopDockWatcher.close();
+            } catch (Exception ignored) {
+                // Best effort cleanup during application shutdown.
+            }
+            desktopDockWatcher = null;
         }
         if (singleInstanceGuard != null) {
             singleInstanceGuard.close();
@@ -151,7 +164,8 @@ public class App extends Application {
         SettingsWindowLauncher.open(
                 appServices,
                 dockController::updateDockUI,
-                positioningMode -> handlePositioningModeChange(appServices, dockStage, positioningMode)
+                positioningMode -> handlePositioningModeChange(appServices, dockStage, positioningMode),
+                enabled -> handleShowDesktopProtectionChange(appServices, dockStage, enabled)
         );
     }
 
@@ -165,5 +179,30 @@ public class App extends Application {
             appServices.dockService().setDockPosition(dockStage.getX(), dockStage.getY());
         }
         appServices.positioningService().setPositioningMode(positioningMode);
+    }
+
+    private void handleShowDesktopProtectionChange(AppServices appServices, Stage dockStage, boolean enabled) {
+        appServices.dockService().getDock().setShowDesktopProtectionEnabled(enabled);
+        appServices.dockService().saveChanges();
+        updateShowDesktopProtection(dockStage, enabled);
+    }
+
+    private void updateShowDesktopProtection(Stage dockStage, boolean enabled) {
+        if (desktopDockWatcher != null) {
+            try {
+                desktopDockWatcher.close();
+            } catch (Exception ignored) {
+                // Best effort cleanup when the Windows desktop watcher is toggled.
+            }
+            desktopDockWatcher = null;
+        }
+
+        if (!enabled) {
+            NativeWindowUtils.disableShowDesktopProtection(dockStage);
+            return;
+        }
+
+        NativeWindowUtils.refreshDockZOrderForShowDesktop(dockStage);
+        desktopDockWatcher = NativeWindowUtils.keepDockVisibleWithShowDesktop(dockStage);
     }
 }

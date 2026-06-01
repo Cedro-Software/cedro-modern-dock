@@ -2,6 +2,7 @@
 
 <?import javafx.geometry.Insets?>
 <?import javafx.scene.control.Button?>
+<?import javafx.scene.control.CheckBox?>
 <?import javafx.scene.control.ChoiceBox?>
 <?import javafx.scene.control.ColorPicker?>
 <?import javafx.scene.control.Label?>
@@ -144,6 +145,13 @@
                                     <ColorPicker id="dockColorPicker" fx:id="dockColorPicker" onAction="#handleSetDockColor" prefWidth="170.0" styleClass="color-picker" />
                                  </children>
                               </HBox>
+                              <VBox spacing="10.0" styleClass="section-card">
+                                 <children>
+                                    <Label fx:id="showDesktopProtectionTitleLabel" styleClass="section-title" text="Show Desktop behavior" />
+                                    <Label fx:id="showDesktopProtectionHelperLabel" styleClass="section-helper" text="Keep the dock visible when Windows shows the desktop with Win+D." wrapText="true" />
+                                    <CheckBox fx:id="showDesktopProtectionCheckBox" mnemonicParsing="false" text="Keep dock visible on Win+D" />
+                                 </children>
+                              </VBox>
                            </children>
                         </VBox>
                      </content>

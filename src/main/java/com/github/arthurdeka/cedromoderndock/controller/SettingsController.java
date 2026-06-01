@@ -21,6 +21,7 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.scene.control.Button;
+import javafx.scene.control.CheckBox;
 import javafx.scene.control.ChoiceBox;
 import javafx.scene.control.ColorPicker;
 import javafx.scene.control.Label;
@@ -177,6 +178,12 @@ public class SettingsController {
     private Label openSourceLabel;
     @FXML
     private Button acknowledgementsButton;
+    @FXML
+    private Label showDesktopProtectionTitleLabel;
+    @FXML
+    private Label showDesktopProtectionHelperLabel;
+    @FXML
+    private CheckBox showDesktopProtectionCheckBox;
 
     private final ObservableList<String> listItems = FXCollections.observableArrayList();
     private final Runnable localizationListener = this::handleLocalizationChanged;
@@ -187,6 +194,7 @@ public class SettingsController {
     private AppServices appServices;
     private Runnable dockRefreshAction = () -> {};
     private Consumer<DockPositioningMode> positioningModeChangeAction = positioningMode -> {};
+    private Consumer<Boolean> showDesktopProtectionChangeAction = enabled -> {};
 
     public void initialize() {
         Logger.info("[Initializing] SettingsController");
@@ -236,7 +244,18 @@ public class SettingsController {
         dockColorPicker.setValue(rgbaColor);
 
         initializePositioningControls();
+        initializeGeneralControls();
         applyLocalizedTexts();
+    }
+
+    private void initializeGeneralControls() {
+        showDesktopProtectionCheckBox.setSelected(appServices.dockService().getDock().isShowDesktopProtectionEnabled());
+        showDesktopProtectionCheckBox.selectedProperty().addListener((observableValue, oldValue, newValue) -> {
+            if (suppressionEnabled) {
+                return;
+            }
+            showDesktopProtectionChangeAction.accept(Boolean.TRUE.equals(newValue));
+        });
     }
 
     private void registerLocalization() {
@@ -568,6 +587,10 @@ public class SettingsController {
         this.positioningModeChangeAction = positioningModeChangeAction;
     }
 
+    public void setShowDesktopProtectionChangeAction(Consumer<Boolean> showDesktopProtectionChangeAction) {
+        this.showDesktopProtectionChangeAction = showDesktopProtectionChangeAction;
+    }
+
     @FXML
     private void openAknowledgementsWindow() {
         try {
@@ -661,6 +684,9 @@ public class SettingsController {
         contactLabel.setText(text("settings.general.contact"));
         openSourceLabel.setText(text("settings.general.openSource"));
         acknowledgementsButton.setText(text("settings.general.acknowledgements"));
+        showDesktopProtectionTitleLabel.setText(text("settings.general.showDesktopProtection.title"));
+        showDesktopProtectionHelperLabel.setText(text("settings.general.showDesktopProtection.helper"));
+        showDesktopProtectionCheckBox.setText(text("settings.general.showDesktopProtection.enabled"));
 
         updateWindowTitle();
     }

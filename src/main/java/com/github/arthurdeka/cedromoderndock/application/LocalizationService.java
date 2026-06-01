@@ -13,6 +13,7 @@ import java.util.concurrent.CopyOnWriteArrayList;
 
 public class LocalizationService {
     private static final String BUNDLE_BASE_NAME = "com.github.arthurdeka.cedromoderndock.i18n.messages";
+    private static final ResourceBundle FALLBACK_BUNDLE = loadBundle(SupportedLanguage.EN_US);
 
     private final DockService dockService;
     private final List<Runnable> listeners = new CopyOnWriteArrayList<>();
@@ -41,7 +42,7 @@ public class LocalizationService {
     }
 
     public String text(String key, Object... arguments) {
-        String pattern = bundle.containsKey(key) ? bundle.getString(key) : key;
+        String pattern = resolveText(bundle, key);
         if (arguments == null || arguments.length == 0) {
             return pattern;
         }
@@ -86,7 +87,7 @@ public class LocalizationService {
     public static String bootstrapText(SupportedLanguage language, String key, Object... arguments) {
         try {
             ResourceBundle bundle = loadBundle(language == null ? SupportedLanguage.EN_US : language);
-            String pattern = bundle.containsKey(key) ? bundle.getString(key) : key;
+            String pattern = resolveText(bundle, key);
             if (arguments == null || arguments.length == 0) {
                 return pattern;
             }
@@ -104,5 +105,15 @@ public class LocalizationService {
 
     private static ResourceBundle loadBundle(SupportedLanguage language) {
         return ResourceBundle.getBundle(BUNDLE_BASE_NAME, language.locale());
+    }
+
+    private static String resolveText(ResourceBundle bundle, String key) {
+        if (bundle != null && bundle.containsKey(key)) {
+            return bundle.getString(key);
+        }
+        if (FALLBACK_BUNDLE.containsKey(key)) {
+            return FALLBACK_BUNDLE.getString(key);
+        }
+        return key;
     }
 }
