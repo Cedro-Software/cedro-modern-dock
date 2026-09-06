@@ -22,6 +22,11 @@ public partial class App : Application
     private static MainWindowViewModel? _mainViewModel;
     private static IClassicDesktopStyleApplicationLifetime? _desktop;
 
+    /// <summary>
+    /// Active singleton instance of the Settings menu window, if open.
+    /// </summary>
+    public static SettingsWindow? SettingsMenu => SettingsWindow.Instance;
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -122,7 +127,8 @@ public partial class App : Application
     private static void OpenSettingsFromTray()
     {
         if (_appServices == null || _mainWindow == null || _mainViewModel == null) return;
-        _mainWindow.Show();
+        if (!_mainWindow.IsVisible)
+            _mainWindow.Show();
         SettingsWindow.Open(
             _appServices,
             _mainWindow,

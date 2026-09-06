@@ -12,7 +12,23 @@ namespace CedroModernDock.Views;
 
 public partial class SettingsWindow : Window
 {
+    private static readonly object _syncLock = new();
     private static SettingsWindow? _instance;
+    private static bool _isOpening;
+
+    /// <summary>
+    /// Gets the current singleton instance of the settings menu window, if one is open.
+    /// </summary>
+    public static SettingsWindow? Instance
+    {
+        get
+        {
+            lock (_syncLock)
+            {
+                return _instance;
+            }
+        }
+    }
 
     private const double DragThresholdPixels = 4;
 
@@ -40,24 +56,71 @@ public partial class SettingsWindow : Window
     public static void Open(AppServices appServices, Window owner,
         Action dockRefreshAction, Action<DockPositioningMode> positioningModeChangeAction)
     {
-        // Only one settings window at a time: focus the existing one.
-        if (_instance != null)
+        lock (_syncLock)
         {
-            _instance.WindowState = WindowState.Normal;
-            _instance.Activate();
-            return;
+            // Only one settings window at a time: focus the existing one.
+            if (_instance != null)
+            {
+                if (_instance.WindowState == WindowState.Minimized)
+                    _instance.WindowState = WindowState.Normal;
+                _instance.Show();
+                _instance.Activate();
+                _instance.Focus();
+                return;
+            }
+
+            // Prevent duplicate creation if rapid clicks occur while the window is still being created/opened.
+            if (_isOpening)
+            {
+                return;
+            }
+
+            _isOpening = true;
         }
 
-        var vm = new SettingsViewModel(appServices, dockRefreshAction, positioningModeChangeAction);
-        var window = new SettingsWindow
+        try
         {
-            DataContext = vm, _vm = vm,
-            _appServices = appServices, _dockRefreshAction = dockRefreshAction
-        };
-        _instance = window;
-        window.Closed += (_, _) => _instance = null;
-        vm.Initialize();
-        window.Show(owner);
+            var vm = new SettingsViewModel(appServices, dockRefreshAction, positioningModeChangeAction);
+            var window = new SettingsWindow
+            {
+                DataContext = vm,
+                _vm = vm,
+                _appServices = appServices,
+                _dockRefreshAction = dockRefreshAction
+            };
+
+            lock (_syncLock)
+            {
+                _instance = window;
+            }
+
+            window.Closed += (_, _) =>
+            {
+                lock (_syncLock)
+                {
+                    if (_instance == window)
+                        _instance = null;
+                }
+            };
+
+            vm.Initialize();
+            window.Show(owner);
+        }
+        catch
+        {
+            lock (_syncLock)
+            {
+                _instance = null;
+            }
+            throw;
+        }
+        finally
+        {
+            lock (_syncLock)
+            {
+                _isOpening = false;
+            }
+        }
     }
 
     private SettingsViewModel Vm => _vm ??= (DataContext as SettingsViewModel)!;
