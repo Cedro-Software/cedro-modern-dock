@@ -5,7 +5,7 @@
 ![X (formerly Twitter) Follow](https://img.shields.io/twitter/follow/TeiuAlligator?style=for-the-badge)
 ![Avalonia](https://img.shields.io/badge/Avalonia-11.3-0080ff?style=for-the-badge&logo=avalonia&logoColor=white)
 
-<img width="1006" height="382" alt="570922610-1489345d-4ddc-4482-a074-ca676da8eb28" src="https://github.com/user-attachments/assets/4ed597cc-a8c4-4d0d-ae3e-cc6fb5514b50" />
+<img width="800" alt="Cedro Modern Dock demo" src="docs/assets/demo.gif" />
 
 
 
