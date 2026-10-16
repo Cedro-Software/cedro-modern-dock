@@ -20,11 +20,17 @@
 
 ## Special Thanks
 
-<a href="https://about.signpath.io"><img src="docs/assets/signpath-io.png" alt="SignPath.io" height="64" /></a>
-&nbsp;&nbsp;
-<a href="https://signpath.org"><img src="docs/assets/signpath-foundation.png" alt="SignPath Foundation" height="64" /></a>
-
-Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+<table>
+  <tr>
+    <td>
+      <a href="https://about.signpath.io"><img src="docs/assets/signpath-io.png" alt="SignPath.io" height="64" /></a>
+      <a href="https://signpath.org"><img src="docs/assets/signpath-foundation.png" alt="SignPath Foundation" height="64" /></a>
+    </td>
+    <td valign="middle">
+      Free code signing provided by <a href="https://about.signpath.io">SignPath.io</a>, certificate by <a href="https://signpath.org">SignPath Foundation</a>.
+    </td>
+  </tr>
+</table>
 <br>
 
 ## What's new in v1.2
