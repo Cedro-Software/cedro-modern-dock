@@ -1,0 +1,75 @@
+name: Build and sign installer
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Installer version (e.g. 1.2.0)"
+        required: true
+      signing-policy:
+        description: "SignPath signing policy slug"
+        required: true
+        default: "test-signing"
+
+permissions:
+  contents: read
+  actions: read
+
+env:
+  WIX_VERSION: "4.0.5"
+
+jobs:
+  build-and-sign:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 9.0.x
+
+      - name: Install WiX Toolset
+        shell: pwsh
+        run: |
+          dotnet tool install --global wix --version $env:WIX_VERSION
+          wix extension add -g "WixToolset.UI.wixext/$env:WIX_VERSION"
+          wix extension add -g "WixToolset.Util.wixext/$env:WIX_VERSION"
+
+      - name: Resolve version
+        id: version
+        shell: pwsh
+        run: |
+          $version = "${{ inputs.version }}"
+          if (-not $version) { $version = "${{ github.ref_name }}".TrimStart("v") }
+          "value=$version" >> $env:GITHUB_OUTPUT
+
+      - name: Build MSI
+        shell: pwsh
+        run: ./dotnet/installer/build.ps1 -Version "${{ steps.version.outputs.value }}"
+
+      - name: Upload unsigned MSI
+        id: upload-unsigned
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-unsigned
+          path: dotnet/installer/CedroModernDock-${{ steps.version.outputs.value }}-x64.msi
+
+      - name: Sign with SignPath
+        uses: signpath/github-action-submit-signing-request@v3
+        with:
+          api-token: ${{ secrets.SIGNPATH_API_TOKEN }}
+          organization-id: 8ad847ea-f551-4488-8055-569aec915825
+          project-slug: cedro-modern-dock
+          signing-policy-slug: ${{ inputs.signing-policy || 'test-signing' }}
+          artifact-configuration-slug: msi-in-zip
+          github-artifact-id: ${{ steps.upload-unsigned.outputs.artifact-id }}
+          wait-for-completion: true
+          output-artifact-directory: signed
+
+      - name: Upload signed MSI
+        uses: actions/upload-artifact@v7
+        with:
+          name: installer-signed
+          path: signed/*.msi
