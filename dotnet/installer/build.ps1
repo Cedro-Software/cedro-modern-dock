@@ -11,6 +11,7 @@ Write-Host "Publishing CedroModernDock (Release, win-x64, self-contained single-
 dotnet publish "$solutionDir\src\CedroModernDock\CedroModernDock.csproj" `
     -c Release -r win-x64 --self-contained true `
     -p:PublishSingleFile=true -p:DebugType=None -p:DebugSymbols=false `
+    -p:Version=$Version -p:Product="Cedro Modern Dock" -p:Company=Cedro `
     -o "$installerDir\publish"
 if ($LASTEXITCODE -ne 0) { throw "dotnet publish failed." }
 
