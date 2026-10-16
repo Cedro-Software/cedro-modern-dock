@@ -18,7 +18,7 @@
 > 3. Execute and install
 <br>
 
-## Special Thanks
+## Special Thanks 💖
 
 <table>
   <tr>
