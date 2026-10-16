@@ -18,6 +18,15 @@
 > 3. Execute and install
 <br>
 
+## Special Thanks
+
+<a href="https://about.signpath.io"><img src="docs/assets/signpath-io.png" alt="SignPath.io" height="64" /></a>
+&nbsp;&nbsp;
+<a href="https://signpath.org"><img src="docs/assets/signpath-foundation.png" alt="SignPath Foundation" height="64" /></a>
+
+Free code signing provided by [SignPath.io](https://about.signpath.io), certificate by [SignPath Foundation](https://signpath.org).
+<br>
+
 ## What's new in v1.2
 
 - **Live window previews:** Hover a running app to see its open windows in real time, click one to bring it forward.
