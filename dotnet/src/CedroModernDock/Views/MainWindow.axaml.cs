@@ -122,8 +122,29 @@ public partial class MainWindow : Window
     {
         if (_appServices == null) return;
         if (!force && _appServices.PositioningService.IsDynamicPositioning()) return;
-        var (x, y) = _appServices.PositioningService.ResolvePosition(Width, Height);
-        Position = new PixelPoint((int)x, (int)y);
+        // Anchors and the saved position refer to the visible bar, which sits
+        // inside the window's zoom headroom.
+        double headroom = DockBar.Margin.Left;
+        var (x, y) = _appServices.PositioningService.ResolvePosition(
+            Width - 2 * headroom, Height - 2 * headroom);
+        int offset = ZoomHeadroomPixels;
+        Position = new PixelPoint((int)x - offset, (int)y - offset);
+    }
+
+    private int ZoomHeadroomPixels => (int)Math.Round(DockBar.Margin.Left * RenderScaling);
+
+    /// <summary>
+    /// Screen position (physical px) of the visible dock bar: the window
+    /// position plus the transparent zoom headroom around the bar. Persisted
+    /// dock positions use it, so they do not depend on the headroom.
+    /// </summary>
+    public PixelPoint DockBarPosition
+    {
+        get
+        {
+            int offset = ZoomHeadroomPixels;
+            return new PixelPoint(Position.X + offset, Position.Y + offset);
+        }
     }
 
     private void OnDockSizeChanged(object? sender, SizeChangedEventArgs e)
@@ -252,7 +273,7 @@ public partial class MainWindow : Window
         }
         _previewPopup.ShowFor(windows, label,
             appearance.GetDockColorRGB(), appearance.GetDockBorderRounding(),
-            appearance.GetDockTransparencyPercentage() / 100.0, button,
+            appearance.GetDockTransparencyPercentage() / 100.0, button, DockBar,
             verticalDock: _appServices.AppearanceService.GetVerticalDock(),
             horizontalAnchor: _appServices.PositioningService.GetHorizontalAnchor());
     }
@@ -372,7 +393,7 @@ public partial class MainWindow : Window
         var appearance = _appServices.AppearanceService;
         _previewPopup.ShowFor(windows, label,
             appearance.GetDockColorRGB(), appearance.GetDockBorderRounding(),
-            appearance.GetDockTransparencyPercentage() / 100.0, anchor,
+            appearance.GetDockTransparencyPercentage() / 100.0, anchor, DockBar,
             verticalDock: _appServices.AppearanceService.GetVerticalDock(),
             horizontalAnchor: _appServices.PositioningService.GetHorizontalAnchor());
     }
@@ -386,6 +407,10 @@ public partial class MainWindow : Window
         if (!e.Pointer.IsPrimary)
             return;
         if (e.Source is Visual source && source.FindAncestorOfType<Button>() != null)
+            return;
+        // The zoom headroom around the bar is transparent: pressing it must not
+        // drag the dock.
+        if (!new Rect(DockBar.Bounds.Size).Contains(e.GetPosition(DockBar)))
             return;
         // In STATIC mode the dock is anchored to the screen and must not be
         // dragged; dragging is only meaningful in DYNAMIC mode.
@@ -412,7 +437,8 @@ public partial class MainWindow : Window
     {
         if (_appServices == null) return;
         if (!_appServices.PositioningService.IsDynamicPositioning()) return;
-        _appServices.DockService.SetDockPosition(Position.X, Position.Y);
+        var position = DockBarPosition;
+        _appServices.DockService.SetDockPosition(position.X, position.Y);
     }
 
     private void UpdateStatus(string status)
@@ -440,7 +466,8 @@ public partial class MainWindow : Window
         var currentMode = _appServices.PositioningService.GetPositioningMode();
         if (currentMode == DockPositioningMode.STATIC && mode == DockPositioningMode.DYNAMIC)
         {
-            _appServices.DockService.SetDockPosition(Position.X, Position.Y);
+            var position = DockBarPosition;
+            _appServices.DockService.SetDockPosition(position.X, position.Y);
         }
         _appServices.PositioningService.SetPositioningMode(mode);
     }

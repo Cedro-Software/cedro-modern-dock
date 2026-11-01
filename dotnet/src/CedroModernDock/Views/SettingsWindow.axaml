@@ -234,6 +234,11 @@
                             <Slider Minimum="0" Maximum="30" Value="{Binding BorderRounding}" Margin="0,8,0,0"/>
                         </StackPanel>
                         <StackPanel Orientation="Vertical" Spacing="4">
+                            <TextBlock Text="{Binding DockPaddingTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
+                            <TextBlock Text="{Binding DockPaddingHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
+                            <Slider Minimum="0" Maximum="30" Value="{Binding DockPadding}" Margin="0,8,0,0"/>
+                        </StackPanel>
+                        <StackPanel Orientation="Vertical" Spacing="4">
                             <TextBlock Text="{Binding BgColorTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
                             <TextBlock Text="{Binding BgColorHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
                             <!-- Quick-pick presets -->

@@ -42,6 +42,14 @@ public class DockModel
     [JsonPropertyName("dockBorderRounding")]
     public int DockBorderRounding { get; set; } = 10;
 
+    private int _dockPadding = 10;
+    [JsonPropertyName("dockPadding")]
+    public int DockPadding
+    {
+        get => _dockPadding;
+        set => _dockPadding = value;
+    }
+
     [JsonPropertyName("dockColorRGB")]
     public string DockColorRGB { get; set; } = "0, 0, 0, ";
 
