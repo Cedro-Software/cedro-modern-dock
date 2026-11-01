@@ -33,8 +33,9 @@
             VerticalAlignment="Center">
 
         <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}">
-            <!-- Pinned dock items -->
-            <ItemsControl ItemsSource="{Binding Items}">
+            <!-- Pinned dock items. The Fluent theme makes ItemsControl clip to its
+                 bounds, which would cut hover-zoomed icons at the bar's padding. -->
+            <ItemsControl ItemsSource="{Binding Items}" ClipToBounds="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}" />
@@ -120,7 +121,8 @@
 
             <!-- Running-but-unpinned apps (taskbar-like) -->
             <ItemsControl ItemsSource="{Binding RunningApps}"
-                          IsVisible="{Binding HasRunningApps}">
+                          IsVisible="{Binding HasRunningApps}"
+                          ClipToBounds="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}" />
