@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -26,6 +26,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private int _iconsSize = 48;
     private int _spacing = 5;
     private int _borderRounding = 12;
+    private int _dockPadding = 10;
     private IBrush _dockBackground = new SolidColorBrush(Color.FromArgb(158, 0, 0, 0));
     private string _statusText = "";
 
@@ -89,6 +90,16 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
     public CornerRadius DockCornerRadius => new CornerRadius(BorderRounding);
+    public int DockPadding
+    {
+        get => _dockPadding;
+        set
+        {
+            if (SetProperty(ref _dockPadding, value))
+                OnPropertyChanged(nameof(DockPaddingThickness));
+        }
+    }
+    public Thickness DockPaddingThickness => new Thickness(DockPadding);
     public IBrush DockBackground { get => _dockBackground; set => SetProperty(ref _dockBackground, value); }
     public string StatusText { get => _statusText; set => SetProperty(ref _statusText, value); }
 
@@ -223,6 +234,7 @@ public partial class MainWindowViewModel : ViewModelBase
             app.IconSize = IconsSize;
         Spacing = appearance.GetSpacingBetweenIcons();
         BorderRounding = appearance.GetDockBorderRounding();
+        DockPadding = appearance.GetDockPadding();
 
         // Re-tint the persistent running-apps VMs with the current tint
         // (set in UpdateDockUI before items are created; pinned items are

@@ -46,6 +46,14 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
+    public int GetDockPadding() => GetDock().DockPadding;
+
+    public void SetDockPadding(int value)
+    {
+        GetDock().DockPadding = Math.Clamp(value, 0, 30);
+        _dockService.SaveChanges();
+    }
+
     public string GetDockColorRGB() => GetDock().DockColorRGB;
 
     public void SetDockColorRGB(string value)

@@ -37,6 +37,7 @@ public partial class SettingsViewModel : ViewModelBase
     private int _iconSpacing;
     private int _transparency;
     private int _borderRounding;
+    private int _dockPadding;
     private Color _dockColor = Colors.Black;
     private bool _tintIcons;
     private Color _tintColor = Color.FromRgb(0, 80, 140); // 7th preset by default
@@ -85,6 +86,7 @@ public partial class SettingsViewModel : ViewModelBase
     public int IconSpacing { get => _iconSpacing; set => SetProperty(ref _iconSpacing, value); }
     public int Transparency { get => _transparency; set => SetProperty(ref _transparency, value); }
     public int BorderRounding { get => _borderRounding; set => SetProperty(ref _borderRounding, value); }
+    public int DockPadding { get => _dockPadding; set => SetProperty(ref _dockPadding, value); }
 
     /// <summary>Quick-pick preset colors for the dock background.</summary>
     public IReadOnlyList<IBrush> PresetColors { get; } = new[]
@@ -187,6 +189,8 @@ public partial class SettingsViewModel : ViewModelBase
     public string TransparencyHelper => T("settings.dockCustomization.transparency.helper");
     public string RoundingTitle => T("settings.dockCustomization.rounding.title");
     public string RoundingHelper => T("settings.dockCustomization.rounding.helper");
+    public string DockPaddingTitle => T("settings.dockCustomization.padding.title");
+    public string DockPaddingHelper => T("settings.dockCustomization.padding.helper");
     public string BgColorTitle => T("settings.dockCustomization.background.title");
     public string BgColorHelper => T("settings.dockCustomization.background.helper");
     public string PosModeTitle => T("settings.positioning.mode.title");
@@ -253,6 +257,7 @@ public partial class SettingsViewModel : ViewModelBase
         IconSpacing = app.GetSpacingBetweenIcons();
         Transparency = app.GetDockTransparencyPercentage();
         BorderRounding = app.GetDockBorderRounding();
+        DockPadding = app.GetDockPadding();
         DockColor = ParseRgbColor(app.GetDockColorRGB());
         TintIcons = app.GetTintIcons();
         TintColor = ParseRgbColor(app.GetTintColorRGB());
@@ -286,6 +291,7 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(IconSpacing): OnIconSpacingChanged(); break;
             case nameof(Transparency): OnTransparencyChanged(); break;
             case nameof(BorderRounding): OnBorderRoundingChanged(); break;
+            case nameof(DockPadding): OnDockPaddingChanged(); break;
             case nameof(DockColor): OnDockColorChanged(); OnPropertyChanged(nameof(DockColorBrush)); break;
             case nameof(TintIcons): OnTintIconsChanged(); break;
             case nameof(TintColor): OnTintColorChanged(); OnPropertyChanged(nameof(TintColorBrush)); break;
@@ -321,6 +327,7 @@ public partial class SettingsViewModel : ViewModelBase
     public void OnIconSpacingChanged() { _appServices.AppearanceService.SetSpacingBetweenIcons(IconSpacing); _dockRefreshAction(); }
     public void OnTransparencyChanged() { _appServices.AppearanceService.SetDockTransparencyPercentage(Transparency); _dockRefreshAction(); }
     public void OnBorderRoundingChanged() { _appServices.AppearanceService.SetDockBorderRounding(BorderRounding); _dockRefreshAction(); }
+    public void OnDockPaddingChanged() { _appServices.AppearanceService.SetDockPadding(DockPadding); _dockRefreshAction(); }
     public void OnDockColorChanged() { _appServices.AppearanceService.SetDockColorRGB(ColorToRgb(DockColor)); _dockRefreshAction(); }
     public void OnTintIconsChanged() { _appServices.AppearanceService.SetTintIcons(TintIcons); _dockRefreshAction(); }
     public void OnTintColorChanged() { _appServices.AppearanceService.SetTintColorRGB(ColorToRgb(TintColor)); _dockRefreshAction(); }

@@ -25,7 +25,7 @@
     <Border x:Name="DockBar"
             Background="{Binding DockBackground}"
             CornerRadius="{Binding DockCornerRadius}"
-            Padding="10"
+            Padding="{Binding DockPaddingThickness}"
             HorizontalAlignment="Center"
             VerticalAlignment="Center"
             ClipToBounds="True">

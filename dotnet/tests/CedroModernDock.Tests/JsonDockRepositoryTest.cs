@@ -72,6 +72,22 @@ public class JsonDockRepositoryTest
     }
 
     [Fact]
+    public void SavesAndLoadsDockPadding()
+    {
+        string configPath = Path.Combine(_tempDir, "config.json");
+        var repository = new JsonDockRepository(configPath);
+
+        var model = new DockModel();
+        model.DockPadding = 4;
+
+        repository.Save(model);
+        DockModel loadedModel = repository.Load();
+
+        Assert.Equal(4, loadedModel.DockPadding);
+        CleanupTempDir();
+    }
+
+    [Fact]
     public void FirstRunFlagsDefaultCreationOnlyOnce()
     {
         string configPath = Path.Combine(_tempDir, "config.json");
