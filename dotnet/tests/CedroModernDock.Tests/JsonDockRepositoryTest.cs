@@ -88,6 +88,22 @@ public class JsonDockRepositoryTest
     }
 
     [Fact]
+    public void LoadsConfigWithoutDockPaddingWithDefault()
+    {
+        // Configs saved before the padding setting existed have no dockPadding key.
+        string configPath = Path.Combine(_tempDir, "config.json");
+        File.WriteAllText(configPath, """{ "items": [], "iconsSize": 32 }""");
+        var repository = new JsonDockRepository(configPath);
+
+        DockModel loadedModel = repository.Load();
+
+        Assert.False(repository.WasDefaultCreated);
+        Assert.Equal(32, loadedModel.IconsSize);
+        Assert.Equal(10, loadedModel.DockPadding);
+        CleanupTempDir();
+    }
+
+    [Fact]
     public void FirstRunFlagsDefaultCreationOnlyOnce()
     {
         string configPath = Path.Combine(_tempDir, "config.json");

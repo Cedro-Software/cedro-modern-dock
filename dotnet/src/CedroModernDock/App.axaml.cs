@@ -137,7 +137,8 @@ public partial class App : Application
         var currentMode = _appServices.PositioningService.GetPositioningMode();
         if (currentMode == DockPositioningMode.STATIC && mode == DockPositioningMode.DYNAMIC)
         {
-            _appServices.DockService.SetDockPosition(_mainWindow.Position.X, _mainWindow.Position.Y);
+            var position = _mainWindow.DockBarPosition;
+            _appServices.DockService.SetDockPosition(position.X, position.Y);
         }
         _appServices.PositioningService.SetPositioningMode(mode);
     }

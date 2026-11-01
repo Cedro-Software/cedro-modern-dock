@@ -21,14 +21,16 @@
         <vm:MainWindowViewModel/>
     </Design.DataContext>
 
-    <!-- Dock bar: rounded background with items -->
+    <!-- Dock bar: rounded background with items. The margin is transparent zoom
+         headroom: the window is sized to its content, so hover-zoomed icons need
+         room past the bar's edge or the window would clip them. -->
     <Border x:Name="DockBar"
             Background="{Binding DockBackground}"
             CornerRadius="{Binding DockCornerRadius}"
             Padding="{Binding DockPaddingThickness}"
+            Margin="{Binding ZoomHeadroomThickness}"
             HorizontalAlignment="Center"
-            VerticalAlignment="Center"
-            ClipToBounds="True">
+            VerticalAlignment="Center">
 
         <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}">
             <!-- Pinned dock items -->
@@ -56,7 +58,8 @@
                                  a local RenderTransform would win over the :pointerover
                                  style setter and disable the effect. scale(n) parses to
                                  TransformOperations, which TransformOperationsTransition
-                                 animates smoothly. -->
+                                 animates smoothly. The factor is mirrored in
+                                 MainWindowViewModel.HoverZoomScale (zoom headroom). -->
                             <Button.Transitions>
                                 <Transitions>
                                     <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.2" />

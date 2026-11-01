@@ -46,11 +46,16 @@ public class DockAppearanceService
         _dockService.SaveChanges();
     }
 
-    public int GetDockPadding() => GetDock().DockPadding;
+    /// <summary>Upper bound of the dock padding (matches the Settings slider).</summary>
+    public const int MaxDockPadding = 30;
+
+    // Clamped on read too: a hand-edited config.json must not yield a negative
+    // or oversized padding.
+    public int GetDockPadding() => Math.Clamp(GetDock().DockPadding, 0, MaxDockPadding);
 
     public void SetDockPadding(int value)
     {
-        GetDock().DockPadding = Math.Clamp(value, 0, 30);
+        GetDock().DockPadding = Math.Clamp(value, 0, MaxDockPadding);
         _dockService.SaveChanges();
     }
 

@@ -7,10 +7,12 @@ using Avalonia.Input;
 using Avalonia.Layout;
 using Avalonia.Media;
 using Avalonia.Threading;
+using Avalonia.VisualTree;
 using CedroModernDock.Core.Application;
 using CedroModernDock.Core.Domain;
 using CedroModernDock.Core.Models;
 using CedroModernDock.Infrastructure.Windows.Native;
+using CedroModernDock.ViewModels;
 
 namespace CedroModernDock.Views;
 
@@ -45,6 +47,7 @@ public partial class WindowPreviewPopup : Window
     private IntPtr _hwnd;
     private bool _regPostQueued;
     private Button? _positionAnchor;
+    private Visual? _positionDockBar;
     private bool _repositionPending;
     private bool _verticalDock;
     private DockHorizontalAnchor _horizontalAnchor = DockHorizontalAnchor.LEFT;
@@ -87,8 +90,8 @@ public partial class WindowPreviewPopup : Window
         {
             if (!_repositionPending) return;
             _repositionPending = false;
-            if (_positionAnchor is { } anchor)
-                PositionNear(anchor);
+            if (_positionAnchor is { } anchor && _positionDockBar is { } dockBar)
+                PositionNear(anchor, dockBar);
         };
     }
 
@@ -102,9 +105,12 @@ public partial class WindowPreviewPopup : Window
     public Action? PointerEnteredCallback { get; set; }
     public Action? PointerExitedCallback { get; set; }
 
-    /// <summary>Populates rows and positions the popup over <paramref name="anchor"/>.</summary>
+    /// <summary>
+    /// Populates rows and positions the popup next to <paramref name="anchor"/>,
+    /// outside the visible <paramref name="dockBar"/>.
+    /// </summary>
     public void ShowFor(IReadOnlyList<WindowInfo> windows, string appLabel,
-        string colorRgb, int rounding, double transparency, Button anchor,
+        string colorRgb, int rounding, double transparency, Button anchor, Visual dockBar,
         bool verticalDock = false, DockHorizontalAnchor horizontalAnchor = DockHorizontalAnchor.LEFT)
     {
         _verticalDock = verticalDock;
@@ -117,12 +123,13 @@ public partial class WindowPreviewPopup : Window
 
         bool wasVisible = IsVisible;
         _positionAnchor = anchor;
+        _positionDockBar = dockBar;
         _repositionPending = true;
         // Cancel any in-flight fade so the new preview starts from a clean,
         // fully opaque state (e.g. re-showing right after a hide began).
         CancelFade();
         BuildRows(windows);
-        if (wasVisible) PositionNear(anchor);
+        if (wasVisible) PositionNear(anchor, dockBar);
         if (!wasVisible)
         {
             // Fade in from transparent on first show.
@@ -221,7 +228,7 @@ public partial class WindowPreviewPopup : Window
         _hoveredRowIndex = -1;
     }
 
-    private void PositionNear(Button anchor)
+    private void PositionNear(Button anchor, Visual dockBar)
     {
         Measure(Size.Infinity);
         double scale = RenderScaling;
@@ -235,24 +242,29 @@ public partial class WindowPreviewPopup : Window
         if (screen is null && screens.All.Count > 0)
             screen = screens.All[0];
 
-        // Gap (DIPs) between the item button and the dock window's own border:
-        // the popup must sit outside the dock, not just below the button.
-        double gapBelow = 0, gapAbove = 0, gapLeft = 0, gapRight = 0;
-        if (TopLevel.GetTopLevel(anchor) is { } root &&
-            anchor.TransformToVisual(root) is { } transform)
+        // The popup must sit outside the visible dock bar (not the dock window,
+        // whose transparent zoom headroom surrounds the bar). With a small dock
+        // padding the hover-zoomed button grows past the bar's edge, so the
+        // popup also clears it (DIPs). The button's layout rect is read through
+        // its parent so the hover RenderTransform (possibly mid-animation) does
+        // not skew it.
+        double clearBelow = 0, clearAbove = 0, clearLeft = 0, clearRight = 0;
+        if (anchor.GetVisualParent() is { } parent && parent.TransformToVisual(dockBar) is { } toBar)
         {
-            var topLeft = new Point(0, 0).Transform(transform);
-            var bottomRight = new Point(anchor.Bounds.Width, anchor.Bounds.Height).Transform(transform);
-            gapBelow = root.Bounds.Height - bottomRight.Y;
-            gapAbove = topLeft.Y;
-            gapLeft = topLeft.X;
-            gapRight = root.Bounds.Width - bottomRight.X;
+            var rect = anchor.Bounds.TransformToAABB(toBar);
+            double growX = rect.Width * (MainWindowViewModel.HoverZoomScale - 1) / 2;
+            double growY = rect.Height * (MainWindowViewModel.HoverZoomScale - 1) / 2;
+            clearAbove = Math.Max(0, growY - rect.Top);
+            clearBelow = Math.Max(0, rect.Bottom + growY - dockBar.Bounds.Height);
+            clearLeft = Math.Max(0, growX - rect.Left);
+            clearRight = Math.Max(0, rect.Right + growX - dockBar.Bounds.Width);
         }
+        var barTopLeft = dockBar.PointToScreen(new Point(0, 0));
+        var barBottomRight = dockBar.PointToScreen(new Point(dockBar.Bounds.Width, dockBar.Bounds.Height));
 
         // Place below the dock by default; above when the dock is in the lower half.
-        var anchorBottom = anchor.PointToScreen(new Point(anchor.Bounds.Width / 2, anchor.Bounds.Height));
         int popupX = anchorCenter.X - w / 2;
-        int popupY = (int)(anchorBottom.Y + gapBelow * scale) + 4;
+        int popupY = barBottomRight.Y + (int)(clearBelow * scale) + 4;
         if (screen is not null)
         {
             var work = screen.WorkingArea;
@@ -262,12 +274,8 @@ public partial class WindowPreviewPopup : Window
                 // against the bar's outer edge with the same 4px gap horizontal
                 // mode uses below the dock. Dock on the left edge -> popup on
                 // the right; dock on the right edge -> popup on the left.
-                int popupRightX = (int)(anchor.PointToScreen(
-                    new Point(anchor.Bounds.Width, anchor.Bounds.Height / 2)).X
-                    + gapRight * scale) + 4;
-                int popupLeftX = (int)(anchor.PointToScreen(
-                    new Point(0, anchor.Bounds.Height / 2)).X
-                    - gapLeft * scale) - w - 4;
+                int popupRightX = barBottomRight.X + (int)(clearRight * scale) + 4;
+                int popupLeftX = barTopLeft.X - (int)(clearLeft * scale) - w - 4;
 
                 bool placeRight = _horizontalAnchor != DockHorizontalAnchor.RIGHT;
                 int px = placeRight ? popupRightX : popupLeftX;
@@ -284,10 +292,7 @@ public partial class WindowPreviewPopup : Window
             else
             {
                 if (popupY + h > work.Bottom)
-                {
-                    var anchorTop = anchor.PointToScreen(new Point(anchor.Bounds.Width / 2, 0));
-                    popupY = (int)(anchorTop.Y - gapAbove * scale) - h - 4;
-                }
+                    popupY = barTopLeft.Y - (int)(clearAbove * scale) - h - 4;
 
                 popupX = Math.Max(work.X + 4, Math.Min(popupX, work.Right - w - 4));
                 popupY = Math.Max(work.Y + 4, popupY);

@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -74,11 +74,30 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Separator is only shown between pinned items and displayed unpinned running apps.</summary>
     public bool ShowVerticalSeparator => HasRunningApps && IsVerticalDock;
 
+    /// <summary>Hover zoom factor of dock items; must match scale(1.3) in MainWindow.axaml.</summary>
+    public const double HoverZoomScale = 1.3;
+
     public int IconsSize
     {
         get => _iconsSize;
-        set => SetProperty(ref _iconsSize, value);
+        set
+        {
+            if (SetProperty(ref _iconsSize, value))
+            {
+                OnPropertyChanged(nameof(ZoomHeadroom));
+                OnPropertyChanged(nameof(ZoomHeadroomThickness));
+            }
+        }
     }
+
+    /// <summary>
+    /// Transparent space kept around the dock bar so a hover-zoomed icon can grow
+    /// past the bar's edge instead of being clipped by the window (which is sized
+    /// to its content). Sized from the icon's growth per side (the button's own
+    /// padding absorbs the rounding), so the zoom never depends on the dock padding.
+    /// </summary>
+    public int ZoomHeadroom => (int)Math.Round(IconsSize * (HoverZoomScale - 1) / 2);
+    public Thickness ZoomHeadroomThickness => new Thickness(ZoomHeadroom);
     public int Spacing { get => _spacing; set => SetProperty(ref _spacing, value); }
     public int BorderRounding
     {
