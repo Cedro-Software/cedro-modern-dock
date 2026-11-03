@@ -30,7 +30,64 @@ public class DockItemViewModel : ViewModelBase
     public bool IsRunning
     {
         get => _isRunning;
-        set => SetProperty(ref _isRunning, value);
+        set
+        {
+            if (SetProperty(ref _isRunning, value) && value)
+            {
+                StopBounce();
+            }
+        }
+    }
+
+    private double _bounceOffsetY;
+    private Avalonia.Threading.DispatcherTimer? _bounceTimer;
+    private DateTime _bounceStartTime;
+
+    /// <summary>Vertical offset in pixels for the app-launch bounce micro-interaction.</summary>
+    public double BounceOffsetY
+    {
+        get => _bounceOffsetY;
+        private set => SetProperty(ref _bounceOffsetY, value);
+    }
+
+    public void StartBounce()
+    {
+        StopBounce();
+        _bounceStartTime = DateTime.UtcNow;
+        _bounceTimer = new Avalonia.Threading.DispatcherTimer { Interval = TimeSpan.FromMilliseconds(16) };
+        _bounceTimer.Tick += OnBounceTick;
+        _bounceTimer.Start();
+    }
+
+    public void StopBounce()
+    {
+        if (_bounceTimer != null)
+        {
+            _bounceTimer.Stop();
+            _bounceTimer.Tick -= OnBounceTick;
+            _bounceTimer = null;
+        }
+        BounceOffsetY = 0.0;
+    }
+
+    private void OnBounceTick(object? sender, EventArgs e)
+    {
+        double elapsed = (DateTime.UtcNow - _bounceStartTime).TotalSeconds;
+
+        // Stop bouncing after 8 seconds timeout or when the program has open windows
+        if (elapsed > 8.0 || (elapsed > 0.8 && IsRunning))
+        {
+            StopBounce();
+            return;
+        }
+
+        // Crisp, springy parabolic bounce cycle (0.45s per bounce)
+        const double period = 0.45;
+        double phase = (elapsed % period) / period; // 0.0 to 1.0
+
+        // Parabolic arc: reaches apex (-15px) at phase 0.5, hits ground at 1.0
+        const double maxApex = -15.0;
+        BounceOffsetY = 4 * maxApex * phase * (1.0 - phase);
     }
 
     /// <summary>True if this item should show a running-app indicator (program items only).</summary>

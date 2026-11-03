@@ -97,6 +97,12 @@ public class DockModel
     [JsonPropertyName("tintColorRGB")]
     public string TintColorRGB { get; set; } = "0, 80, 140";
 
+    [JsonPropertyName("autoHide")]
+    public bool AutoHide { get; set; }
+
+    [JsonPropertyName("autoHideDelay")]
+    public int AutoHideDelay { get; set; } = 300;
+
     public void AddItem(DockItem item) => Items.Add(item);
 
     public void RemoveItem(int index) => Items.RemoveAt(index);

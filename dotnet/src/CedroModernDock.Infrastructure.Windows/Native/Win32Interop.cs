@@ -35,6 +35,7 @@ public static class Win32Constants
     public const uint SWP_NOACTIVATE = 0x0010;
     public const uint SWP_SHOWWINDOW = 0x0040;
     public static readonly IntPtr HWND_TOPMOST = new(-1);
+    public static readonly IntPtr HWND_NOTOPMOST = new(-2);
 
     // SendMessageTimeout flags
     public const uint SMTO_ABORTIFHUNG = 0x0002;
@@ -223,6 +224,9 @@ public static class User32
 
     [DllImport("user32.dll", SetLastError = true)]
     public static extern bool GetCursorPos(out POINT lpPoint);
+
+    [DllImport("user32.dll", SetLastError = true)]
+    public static extern bool GetWindowRect(IntPtr hWnd, out RECT lpRect);
 
     [DllImport("user32.dll", CharSet = CharSet.Unicode, SetLastError = true)]
     public static extern ushort RegisterClass(WNDCLASS lpWndClass);

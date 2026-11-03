@@ -29,7 +29,7 @@ public sealed class DockWindowBehavior : IDisposable
         _onStatus = onStatus;
     }
 
-    public void Apply()
+    public void Apply(bool autoHide = false)
     {
         if (_hwnd == IntPtr.Zero)
         {
@@ -38,7 +38,11 @@ public sealed class DockWindowBehavior : IDisposable
         }
 
         ApplyExtendedStyles();
-        AttachToDesktop();
+
+        if (autoHide)
+            SetAutoHideMode(true);
+        else
+            AttachToDesktop();
 
         // Store the delegate in a field so it is not garbage-collected while
         // the native subclass is active (would cause a crash on next message).
@@ -46,6 +50,30 @@ public sealed class DockWindowBehavior : IDisposable
         _subclassed = Comctl32.SetWindowSubclass(_hwnd, _subclassProc, UIntPtr.Zero, IntPtr.Zero);
 
         _onStatus?.Invoke($"HWND=0x{_hwnd:X} | Subclass={(_subclassed ? "OK" : "FAIL")}");
+    }
+
+    /// <summary>
+    /// Switches between Topmost mode (for auto-hide so the dock pops up over windows)
+    /// and Desktop attachment mode (sits behind normal windows on the desktop).
+    /// </summary>
+    public void SetAutoHideMode(bool autoHide)
+    {
+        if (_hwnd == IntPtr.Zero) return;
+
+        if (autoHide)
+        {
+            User32.SetParent(_hwnd, IntPtr.Zero);
+            User32.SetWindowPos(_hwnd, Win32Constants.HWND_TOPMOST, 0, 0, 0, 0,
+                Win32Constants.SWP_NOMOVE | Win32Constants.SWP_NOSIZE | Win32Constants.SWP_NOACTIVATE | Win32Constants.SWP_SHOWWINDOW);
+            _onStatus?.Invoke("Auto-hide mode: Topmost overlay");
+        }
+        else
+        {
+            User32.SetWindowPos(_hwnd, Win32Constants.HWND_NOTOPMOST, 0, 0, 0, 0,
+                Win32Constants.SWP_NOMOVE | Win32Constants.SWP_NOSIZE | Win32Constants.SWP_NOACTIVATE);
+            AttachToDesktop();
+            _onStatus?.Invoke("Normal mode: Attached to desktop");
+        }
     }
 
     private void ApplyExtendedStyles()

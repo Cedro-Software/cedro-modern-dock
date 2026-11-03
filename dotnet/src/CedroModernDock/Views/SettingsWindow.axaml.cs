@@ -38,7 +38,8 @@ public partial class SettingsWindow : Window
     }
 
     public static void Open(AppServices appServices, Window owner,
-        Action dockRefreshAction, Action<DockPositioningMode> positioningModeChangeAction)
+        Action dockRefreshAction, Action<DockPositioningMode> positioningModeChangeAction,
+        Action? onClosedAction = null)
     {
         // Only one settings window at a time: focus the existing one.
         if (_instance != null)
@@ -55,7 +56,11 @@ public partial class SettingsWindow : Window
             _appServices = appServices, _dockRefreshAction = dockRefreshAction
         };
         _instance = window;
-        window.Closed += (_, _) => _instance = null;
+        window.Closed += (_, _) =>
+        {
+            _instance = null;
+            onClosedAction?.Invoke();
+        };
         vm.Initialize();
         window.Show(owner);
     }
