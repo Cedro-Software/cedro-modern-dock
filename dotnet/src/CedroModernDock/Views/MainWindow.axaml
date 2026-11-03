@@ -15,7 +15,9 @@
         TransparencyLevelHint="Transparent"
         Background="Transparent"
         SizeToContent="WidthAndHeight"
-        PointerPressed="OnPointerPressed">
+        PointerPressed="OnPointerPressed"
+        PointerEntered="OnMainWindowPointerEntered"
+        PointerExited="OnMainWindowPointerExited">
 
     <Design.DataContext>
         <vm:MainWindowViewModel/>
@@ -30,7 +32,16 @@
             Padding="{Binding DockPaddingThickness}"
             Margin="{Binding ZoomHeadroomThickness}"
             HorizontalAlignment="Center"
-            VerticalAlignment="Center">
+            VerticalAlignment="Center"
+            ClipToBounds="False"
+            RenderTransformOrigin="50%, 50%">
+
+        <Border.Transitions>
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+                <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.35" Easing="BackEaseOut"/>
+            </Transitions>
+        </Border.Transitions>
 
         <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}">
             <!-- Pinned dock items. The Fluent theme makes ItemsControl clip to its
@@ -74,6 +85,9 @@
                                 <Style Selector="Button:pointerover">
                                     <Setter Property="RenderTransform" Value="scale(1.3)" />
                                 </Style>
+                                <Style Selector="Button:pressed">
+                                    <Setter Property="RenderTransform" Value="scale(0.92)" />
+                                </Style>
                                 <!-- The Fluent theme paints a gray hover/pressed background
                                      on the button's template part; dock items must stay
                                      background-free (scoped styles override the theme). -->
@@ -88,6 +102,9 @@
                             <!-- Item content: icon + running indicator -->
                             <StackPanel Orientation="Vertical" Spacing="3"
                                         HorizontalAlignment="Center">
+                                <StackPanel.RenderTransform>
+                                    <TranslateTransform Y="{Binding BounceOffsetY}" />
+                                </StackPanel.RenderTransform>
                                 <Image Source="{Binding Icon}"
                                        Width="{Binding IconSize}"
                                        Height="{Binding IconSize}"
@@ -153,6 +170,9 @@
                                 </Style>
                                 <Style Selector="Button:pointerover">
                                     <Setter Property="RenderTransform" Value="scale(1.3)" />
+                                </Style>
+                                <Style Selector="Button:pressed">
+                                    <Setter Property="RenderTransform" Value="scale(0.92)" />
                                 </Style>
                                 <Style Selector="Button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
                                     <Setter Property="Background" Value="Transparent" />

@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Linq;
@@ -284,11 +284,17 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         if (param is DockItemViewModel itemVm && _appServices != null)
         {
+            if (itemVm.Item is DockProgramItemModel)
+            {
+                itemVm.StartBounce();
+            }
+
             bool launched = _appServices.ItemActionService.Execute(
                 itemVm.Item, () => OpenSettingsAction?.Invoke());
 
             if (!launched && itemVm.Item is DockProgramItemModel programItem)
             {
+                itemVm.StopBounce();
                 var loc = _appServices.LocalizationService;
                 System.Windows.Forms.MessageBox.Show(
                     loc.Text("dialog.programNotFound.message",

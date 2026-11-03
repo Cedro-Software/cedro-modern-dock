@@ -331,6 +331,16 @@
                                   IsChecked="{Binding ShowUnpinnedRunningApps}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
                         <CheckBox Content="{Binding ArrangeVerticalText}"
                                   IsChecked="{Binding IsVerticalDock}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
+                        <CheckBox Content="{Binding AutoHideText}"
+                                  IsChecked="{Binding IsAutoHide}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
+                        <StackPanel Orientation="Vertical" Spacing="4" Margin="24,4,0,0" IsVisible="{Binding IsAutoHide}">
+                            <StackPanel Orientation="Horizontal" Spacing="8">
+                                <TextBlock Text="{Binding AutoHideDelayTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
+                                <TextBlock Text="{Binding AutoHideDelayDisplay}" Foreground="#888888"/>
+                            </StackPanel>
+                            <TextBlock Text="{Binding AutoHideDelayHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
+                            <Slider Minimum="0" Maximum="1000" Value="{Binding AutoHideDelay}" Width="250" HorizontalAlignment="Left" Margin="0,4,0,0"/>
+                        </StackPanel>
                         <Button Content="{Binding AcknowledgementsText}" Click="OnAcknowledgements"
                                 Background="#007ACC" Foreground="White" BorderBrush="Transparent"
                                 Padding="16,8" HorizontalAlignment="Left" Margin="0,8,0,0"/>

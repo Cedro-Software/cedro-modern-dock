@@ -32,6 +32,12 @@ public partial class MainWindow : Window
     private readonly DispatcherTimer _previewHideDebounce = new() { Interval = TimeSpan.FromMilliseconds(80) };
     private readonly DispatcherTimer _previewCloseRefresh = new() { Interval = TimeSpan.FromMilliseconds(500) };
     private readonly DispatcherTimer _positionPersistTimer = new() { Interval = TimeSpan.FromMilliseconds(200) };
+    private readonly DispatcherTimer _autoHidePollTimer = new() { Interval = TimeSpan.FromMilliseconds(50) };
+    private readonly DispatcherTimer _autoHideDelayTimer = new();
+    private const double IdleDockOpacity = 0.15;
+    private bool _isDockHidden;
+    private bool _isSettingsOpen;
+    private IntPtr _hwnd;
 
     public MainWindow()
     {
@@ -60,6 +66,8 @@ public partial class MainWindow : Window
             _previewCloseRefresh.Stop();
             RefreshPreviewAfterClose();
         };
+        _autoHidePollTimer.Tick += OnAutoHidePollTick;
+        _autoHideDelayTimer.Tick += OnAutoHideDelayTick;
     }
 
     private bool IsPointerOverPreview()
@@ -88,8 +96,13 @@ public partial class MainWindow : Window
             return;
         }
 
+        _hwnd = handle.Handle;
+        bool autoHide = _appServices?.PositioningService.GetAutoHide() ?? false;
         _dockBehavior = new DockWindowBehavior(handle.Handle, UpdateStatus);
-        _dockBehavior.Apply();
+        _dockBehavior.Apply(autoHide);
+
+        if (autoHide)
+            _autoHidePollTimer.Start();
 
         // Initialize the dock ViewModel (loads items, starts indicator watcher).
         if (DataContext is MainWindowViewModel vm)
@@ -121,14 +134,33 @@ public partial class MainWindow : Window
     private void ApplyDockPosition(bool force = false)
     {
         if (_appServices == null) return;
+        bool autoHide = _appServices.PositioningService.GetAutoHide();
+
+        _dockBehavior?.SetAutoHideMode(autoHide);
+
+        if (autoHide)
+        {
+            if (!_autoHidePollTimer.IsEnabled)
+                _autoHidePollTimer.Start();
+        }
+        else
+        {
+            _autoHidePollTimer.Stop();
+            _autoHideDelayTimer.Stop();
+            _isDockHidden = false;
+            DockBar.Opacity = 1.0;
+            DockBar.RenderTransform = Avalonia.Media.Transformation.TransformOperations.Parse("scale(1)");
+        }
+
         if (!force && _appServices.PositioningService.IsDynamicPositioning()) return;
         // Anchors and the saved position refer to the visible bar, which sits
         // inside the window's zoom headroom.
         double headroom = DockBar.Margin.Left;
-        var (x, y) = _appServices.PositioningService.ResolvePosition(
-            Width - 2 * headroom, Height - 2 * headroom);
+        double w = (Bounds.Width > 0 ? Bounds.Width : Width) - 2 * headroom;
+        double h = (Bounds.Height > 0 ? Bounds.Height : Height) - 2 * headroom;
+        var (x, y) = _appServices.PositioningService.ResolvePosition(w, h);
         int offset = ZoomHeadroomPixels;
-        Position = new PixelPoint((int)x - offset, (int)y - offset);
+        Position = new PixelPoint((int)Math.Round(x) - offset, (int)Math.Round(y) - offset);
     }
 
     private int ZoomHeadroomPixels => (int)Math.Round(DockBar.Margin.Left * RenderScaling);
@@ -151,6 +183,94 @@ public partial class MainWindow : Window
     {
         if (_appServices?.PositioningService.IsDynamicPositioning() == false)
             ApplyDockPosition();
+    }
+
+    private void OnMainWindowPointerEntered(object? sender, PointerEventArgs e)
+    {
+        if (_appServices?.PositioningService.GetAutoHide() != true) return;
+        ShowDock();
+    }
+
+    private void OnMainWindowPointerExited(object? sender, PointerEventArgs e)
+    {
+        if (_appServices?.PositioningService.GetAutoHide() != true) return;
+        if (_isSettingsOpen) return;
+        if (IsPointerOverPreview()) return;
+
+        int delay = _appServices.PositioningService.GetAutoHideDelay();
+        _autoHideDelayTimer.Interval = TimeSpan.FromMilliseconds(delay);
+        _autoHideDelayTimer.Stop();
+        _autoHideDelayTimer.Start();
+    }
+
+    private void OnAutoHidePollTick(object? sender, EventArgs e)
+    {
+        if (_appServices == null || !_appServices.PositioningService.GetAutoHide()) return;
+        if (_isSettingsOpen) return;
+
+        if (!User32.GetCursorPos(out POINT pt)) return;
+
+        bool overDock = IsPointerOverDock(pt);
+        bool overPreview = IsPointerOverPreview();
+
+        if (overDock || overPreview)
+        {
+            _autoHideDelayTimer.Stop();
+            if (_isDockHidden)
+            {
+                ShowDock();
+            }
+        }
+        else
+        {
+            if (!_isDockHidden && !_autoHideDelayTimer.IsEnabled)
+            {
+                int delay = _appServices.PositioningService.GetAutoHideDelay();
+                _autoHideDelayTimer.Interval = TimeSpan.FromMilliseconds(delay);
+                _autoHideDelayTimer.Start();
+            }
+        }
+    }
+
+    private void OnAutoHideDelayTick(object? sender, EventArgs e)
+    {
+        _autoHideDelayTimer.Stop();
+        if (_isSettingsOpen) return;
+        if (!User32.GetCursorPos(out POINT pt)) return;
+        if (IsPointerOverDock(pt) || IsPointerOverPreview()) return;
+        HideDock();
+    }
+
+    private void ShowDock()
+    {
+        _autoHideDelayTimer.Stop();
+        _isDockHidden = false;
+        DockBar.Opacity = 1.0;
+        DockBar.RenderTransform = Avalonia.Media.Transformation.TransformOperations.Parse("scale(1)");
+    }
+
+    private void HideDock()
+    {
+        _isDockHidden = true;
+        HidePreview();
+        DockBar.Opacity = IdleDockOpacity;
+        DockBar.RenderTransform = Avalonia.Media.Transformation.TransformOperations.Parse("scale(0.96)");
+    }
+
+    private bool IsPointerOverDock(POINT pt)
+    {
+        if (_hwnd != IntPtr.Zero && User32.GetWindowRect(_hwnd, out RECT r))
+        {
+            const int padding = 24;
+            return pt.X >= r.Left - padding && pt.X <= r.Right + padding &&
+                   pt.Y >= r.Top - padding && pt.Y <= r.Bottom + padding;
+        }
+
+        double scale = RenderScaling > 0 ? RenderScaling : 1.0;
+        double w = (Bounds.Width > 0 ? Bounds.Width : Width) * scale;
+        double h = (Bounds.Height > 0 ? Bounds.Height : Height) * scale;
+        return pt.X >= Position.X && pt.X <= Position.X + w &&
+               pt.Y >= Position.Y && pt.Y <= Position.Y + h;
     }
 
     private void OnItemPointerEntered(object? sender, PointerEventArgs e)
@@ -429,6 +549,7 @@ public partial class MainWindow : Window
     {
         if (_appServices == null) return;
         if (!_appServices.PositioningService.IsDynamicPositioning()) return;
+        if (_isDockHidden) return;
         _positionPersistTimer.Stop();
         _positionPersistTimer.Start();
     }
@@ -437,6 +558,7 @@ public partial class MainWindow : Window
     {
         if (_appServices == null) return;
         if (!_appServices.PositioningService.IsDynamicPositioning()) return;
+        if (_isDockHidden) return;
         var position = DockBarPosition;
         _appServices.DockService.SetDockPosition(position.X, position.Y);
     }
@@ -451,11 +573,28 @@ public partial class MainWindow : Window
     private void OpenSettings(MainWindowViewModel vm)
     {
         if (_appServices == null) return;
+        _isSettingsOpen = true;
+        ShowDock();
         SettingsWindow.Open(
             _appServices,
             this,
-            dockRefreshAction: vm.UpdateDockUI,
-            positioningModeChangeAction: mode => HandlePositioningModeChange(mode)
+            dockRefreshAction: () =>
+            {
+                vm.UpdateDockUI();
+                ApplyDockPosition();
+            },
+            positioningModeChangeAction: mode => HandlePositioningModeChange(mode),
+            onClosedAction: () =>
+            {
+                _isSettingsOpen = false;
+                if (_appServices?.PositioningService.GetAutoHide() == true)
+                {
+                    int delay = _appServices.PositioningService.GetAutoHideDelay();
+                    _autoHideDelayTimer.Interval = TimeSpan.FromMilliseconds(delay);
+                    _autoHideDelayTimer.Stop();
+                    _autoHideDelayTimer.Start();
+                }
+            }
         );
     }
 
@@ -476,6 +615,8 @@ public partial class MainWindow : Window
     {
         PositionChanged -= OnDockPositionChanged;
         _positionPersistTimer.Stop();
+        _autoHidePollTimer.Stop();
+        _autoHideDelayTimer.Stop();
         HidePreview();
         if (DataContext is MainWindowViewModel vm)
             vm.Shutdown();

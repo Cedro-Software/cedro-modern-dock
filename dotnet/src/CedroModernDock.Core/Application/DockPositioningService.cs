@@ -83,6 +83,132 @@ public class DockPositioningService
         _dockService.SaveChanges();
     }
 
+    public bool GetAutoHide() => _dockService.GetDock().AutoHide;
+
+    public void SetAutoHide(bool value)
+    {
+        _dockService.GetDock().AutoHide = value;
+        _dockService.SaveChanges();
+    }
+
+    public int GetAutoHideDelay() => _dockService.GetDock().AutoHideDelay;
+
+    public void SetAutoHideDelay(int value)
+    {
+        _dockService.GetDock().AutoHideDelay = Math.Clamp(value, 0, 2000);
+        _dockService.SaveChanges();
+    }
+
+    public enum DockEdge { Top, Bottom, Left, Right }
+
+    public DockEdge DetermineDockEdge(
+        ScreenBounds bounds, DockModel dock, double windowWidth, double windowHeight, double shownX, double shownY)
+    {
+        if (dock.PositioningMode == DockPositioningMode.DYNAMIC)
+        {
+            double centerX = shownX + (windowWidth / 2.0);
+            double centerY = shownY + (windowHeight / 2.0);
+
+            double distToTop = Math.Abs(centerY - bounds.MinY);
+            double distToBottom = Math.Abs(bounds.MaxY - centerY);
+            double distToLeft = Math.Abs(centerX - bounds.MinX);
+            double distToRight = Math.Abs(bounds.MaxX - centerX);
+
+            double minDist = Math.Min(Math.Min(distToTop, distToBottom), Math.Min(distToLeft, distToRight));
+
+            if (minDist == distToTop) return DockEdge.Top;
+            if (minDist == distToBottom) return DockEdge.Bottom;
+            if (minDist == distToLeft) return DockEdge.Left;
+            return DockEdge.Right;
+        }
+
+        if (dock.VerticalDock)
+        {
+            return dock.HorizontalAnchor == DockHorizontalAnchor.RIGHT ? DockEdge.Right : DockEdge.Left;
+        }
+        else
+        {
+            return dock.VerticalAnchor == DockVerticalAnchor.DOWN ? DockEdge.Bottom : DockEdge.Top;
+        }
+    }
+
+    /// <summary>
+    /// Computes the dock's retracted position when auto-hidden (leaving a 2px sliver at the screen edge).
+    /// </summary>
+    public (double X, double Y) ResolveHiddenPosition(
+        double windowWidth, double windowHeight, double shownX, double shownY)
+    {
+        if (_screenBoundsProvider == null)
+            return (shownX, shownY);
+
+        var bounds = _screenBoundsProvider.GetPrimaryScreenBounds();
+        var dock = _dockService.GetDock();
+        var edge = DetermineDockEdge(bounds, dock, windowWidth, windowHeight, shownX, shownY);
+
+        return edge switch
+        {
+            DockEdge.Right => (SnapToPixel(bounds.MaxX - 2), SnapToPixel(shownY)),
+            DockEdge.Left => (SnapToPixel(bounds.MinX - windowWidth + 2), SnapToPixel(shownY)),
+            DockEdge.Bottom => (SnapToPixel(shownX), SnapToPixel(bounds.MaxY - 2)),
+            _ => (SnapToPixel(shownX), SnapToPixel(bounds.MinY - windowHeight + 2))
+        };
+    }
+
+    /// <summary>
+    /// Determines whether the mouse cursor is touching the screen edge, moving in the corridor,
+    /// or hovering over the dock's resting area.
+    /// </summary>
+    public bool IsCursorInTriggerZone(
+        double cursorX, double cursorY, double windowWidth, double windowHeight, double shownX, double shownY)
+    {
+        // 1. Direct hit on the dock's resting area ("the place of dock") with generous padding
+        const double hoverPadding = 12.0;
+        if (cursorX >= shownX - hoverPadding && cursorX <= shownX + windowWidth + hoverPadding &&
+            cursorY >= shownY - hoverPadding && cursorY <= shownY + windowHeight + hoverPadding)
+        {
+            return true;
+        }
+
+        if (_screenBoundsProvider == null)
+            return false;
+
+        var bounds = _screenBoundsProvider.GetPrimaryScreenBounds();
+        var dock = _dockService.GetDock();
+        var edge = DetermineDockEdge(bounds, dock, windowWidth, windowHeight, shownX, shownY);
+
+        const double edgeThreshold = 10.0;
+
+        switch (edge)
+        {
+            case DockEdge.Top:
+                bool inTopHorizontal = cursorX >= shownX - 16 && cursorX <= shownX + windowWidth + 16;
+                bool inTopCorridor = inTopHorizontal && cursorY <= shownY + windowHeight + hoverPadding;
+                bool atTopScreenEdge = cursorY <= bounds.MinY + edgeThreshold;
+                return inTopCorridor || atTopScreenEdge;
+
+            case DockEdge.Bottom:
+                bool inBottomHorizontal = cursorX >= shownX - 16 && cursorX <= shownX + windowWidth + 16;
+                bool inBottomCorridor = inBottomHorizontal && cursorY >= shownY - hoverPadding;
+                bool atBottomScreenEdge = cursorY >= bounds.MaxY - edgeThreshold;
+                return inBottomCorridor || atBottomScreenEdge;
+
+            case DockEdge.Left:
+                bool inLeftVertical = cursorY >= shownY - 16 && cursorY <= shownY + windowHeight + 16;
+                bool inLeftCorridor = inLeftVertical && cursorX <= shownX + windowWidth + hoverPadding;
+                bool atLeftScreenEdge = cursorX <= bounds.MinX + edgeThreshold;
+                return inLeftCorridor || atLeftScreenEdge;
+
+            case DockEdge.Right:
+                bool inRightVertical = cursorY >= shownY - 16 && cursorY <= shownY + windowHeight + 16;
+                bool inRightCorridor = inRightVertical && cursorX >= shownX - hoverPadding;
+                bool atRightScreenEdge = cursorX >= bounds.MaxX - edgeThreshold;
+                return inRightCorridor || atRightScreenEdge;
+
+            default:
+                return false;
+        }
+    }
+
     public bool IsDynamicPositioning() => GetPositioningMode() == DockPositioningMode.DYNAMIC;
 
     /// <summary>

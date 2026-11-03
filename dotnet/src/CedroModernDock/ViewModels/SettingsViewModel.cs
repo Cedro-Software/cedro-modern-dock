@@ -215,6 +215,9 @@ public partial class SettingsViewModel : ViewModelBase
     public string StartWithWindowsText => T("settings.general.startWithWindows");
     public string ShowUnpinnedRunningAppsText => T("settings.general.showUnpinnedRunningApps");
     public string ArrangeVerticalText => T("settings.general.arrangeVertical");
+    public string AutoHideText => T("settings.general.autoHide");
+    public string AutoHideDelayTitle => T("settings.general.autoHideDelay.title");
+    public string AutoHideDelayHelper => T("settings.general.autoHideDelay.helper");
     public string CustomColorText => T("settings.customColor");
 
     private bool _isAutoStartEnabled;
@@ -237,6 +240,26 @@ public partial class SettingsViewModel : ViewModelBase
         get => _isVerticalDock;
         set => SetProperty(ref _isVerticalDock, value);
     }
+
+    private bool _isAutoHide;
+    public bool IsAutoHide
+    {
+        get => _isAutoHide;
+        set => SetProperty(ref _isAutoHide, value);
+    }
+
+    private int _autoHideDelay = 300;
+    public int AutoHideDelay
+    {
+        get => _autoHideDelay;
+        set
+        {
+            if (SetProperty(ref _autoHideDelay, value))
+                OnPropertyChanged(nameof(AutoHideDelayDisplay));
+        }
+    }
+
+    public string AutoHideDelayDisplay => $"{AutoHideDelay} ms";
 
     public SettingsViewModel(AppServices appServices, Action dockRefreshAction,
         Action<DockPositioningMode> positioningModeChangeAction)
@@ -276,6 +299,8 @@ public partial class SettingsViewModel : ViewModelBase
         IsAutoStartEnabled = Infrastructure.Windows.Adapters.AutoStartHelper.IsAutoStartEnabled();
         ShowUnpinnedRunningApps = app.GetShowUnpinnedRunningApps();
         IsVerticalDock = app.GetVerticalDock();
+        IsAutoHide = pos.GetAutoHide();
+        AutoHideDelay = pos.GetAutoHideDelay();
         _isInitialized = true;
     }
 
@@ -299,6 +324,8 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(IsAutoStartEnabled): OnAutoStartChanged(); break;
             case nameof(ShowUnpinnedRunningApps): OnShowUnpinnedRunningAppsChanged(); break;
             case nameof(IsVerticalDock): OnVerticalDockChanged(); break;
+            case nameof(IsAutoHide): OnAutoHideChanged(); break;
+            case nameof(AutoHideDelay): OnAutoHideDelayChanged(); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
             case nameof(VerticalAnchor): OnVerticalAnchorChanged(); break;
             case nameof(HorizontalAnchor): OnHorizontalAnchorChanged(); break;
@@ -350,6 +377,18 @@ public partial class SettingsViewModel : ViewModelBase
     public void OnVerticalDockChanged()
     {
         _appServices.AppearanceService.SetVerticalDock(IsVerticalDock);
+        _dockRefreshAction();
+    }
+
+    public void OnAutoHideChanged()
+    {
+        _appServices.PositioningService.SetAutoHide(IsAutoHide);
+        _dockRefreshAction();
+    }
+
+    public void OnAutoHideDelayChanged()
+    {
+        _appServices.PositioningService.SetAutoHideDelay(AutoHideDelay);
         _dockRefreshAction();
     }
     public void OnPositioningModeChanged()
