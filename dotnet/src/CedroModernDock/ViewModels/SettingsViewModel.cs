@@ -9,7 +9,10 @@ using CedroModernDock.Core.Models;
 namespace CedroModernDock.ViewModels;
 
 /// <summary>One row in the Settings dock-items list: display label + icon.</summary>
-public sealed record DockItemListEntry(string Label, Bitmap? Icon);
+public sealed record DockItemListEntry(string Label, Bitmap? Icon, string? Detail = null)
+{
+    public bool HasDetail => !string.IsNullOrEmpty(Detail);
+}
 
 /// <summary>Alignment combo-box entry: localized label + enum value.</summary>
 public sealed record AnchorOption(string Label, DockVerticalAnchor Value);
@@ -75,6 +78,17 @@ public partial class SettingsViewModel : ViewModelBase
             SelectedLanguage = Languages[value];
         }
     }
+
+    private int _selectedPageIndex;
+    /// <summary>Selected settings page (left navigation).</summary>
+    public int SelectedPageIndex { get => _selectedPageIndex; set => SetProperty(ref _selectedPageIndex, value); }
+
+    /// <summary>Page indexes, in navigation order.</summary>
+    public const int PageItems = 0, PageIcons = 1, PageAppearance = 2, PageThemes = 3, PagePosition = 4, PageGeneral = 5;
+
+    private bool _iconsLocked = true;
+    /// <summary>When off, dock icons can be dragged to reorder them directly on the dock.</summary>
+    public bool IconsLocked { get => _iconsLocked; set => SetProperty(ref _iconsLocked, value); }
 
     public int SelectedItemIndex
     {
@@ -217,6 +231,23 @@ public partial class SettingsViewModel : ViewModelBase
     public string ArrangeVerticalText => T("settings.general.arrangeVertical");
     public string CustomColorText => T("settings.customColor");
 
+    // --- Redesigned settings: page subtitles, new options ---
+    public string ItemsSubtitle => L("settings.items.subtitle", "Programs, folders and shortcuts shown in the dock.");
+    public string IconsSubtitle => L("settings.iconsPage.subtitle", "Size, spacing and color of the icons.");
+    public string AppearanceSubtitle => L("settings.appearance.subtitle", "Background, transparency and shape of the dock bar.");
+    public string PositionSubtitle => L("settings.position.subtitle", "Where the dock sits on your screen.");
+    public string GeneralSubtitle => L("settings.general.subtitle", "Startup, behavior and language.");
+    public string AddSeparatorText => L("settings.icons.addSeparator", "Separator");
+    public string ItemsDragHint => L("settings.items.hint", "Drag rows to reorder them. You can also right-click the dock, or drop files and shortcuts on it.");
+    public string LockIconsText => L("settings.general.lockIcons", "Lock dock icons");
+    public string LockIconsHelper => L("settings.general.lockIcons.helper", "When unlocked, drag icons directly on the dock to reorder them.");
+    public string StartWithWindowsHelper => L("settings.general.startWithWindows.helper", "Launch the dock when you sign in to Windows.");
+    public string ShowUnpinnedHelper => L("settings.general.showUnpinned.helper", "Running apps that are not pinned appear after a separator, like the taskbar.");
+    public string ArrangeVerticalHelper => L("settings.general.arrangeVertical.helper", "Stack the icons vertically, for a dock on the left or right edge.");
+    public string AboutTitle => L("settings.general.about", "About");
+    public string LanguageHelper => L("settings.general.language.helper", "Language of the dock and of this window.");
+    public string ScreenSpacingHelper => L("settings.position.spacing.helper", "Distance between the dock and the screen edges, in pixels.");
+
     private bool _isAutoStartEnabled;
     public bool IsAutoStartEnabled
     {
@@ -276,6 +307,9 @@ public partial class SettingsViewModel : ViewModelBase
         IsAutoStartEnabled = Infrastructure.Windows.Adapters.AutoStartHelper.IsAutoStartEnabled();
         ShowUnpinnedRunningApps = app.GetShowUnpinnedRunningApps();
         IsVerticalDock = app.GetVerticalDock();
+        IconsLocked = _appServices.DockService.GetIconsLocked();
+        _appServices.ThemeService.ThemesChanged += OnThemesChanged;
+        RefreshThemes();
         _isInitialized = true;
     }
 
@@ -289,10 +323,11 @@ public partial class SettingsViewModel : ViewModelBase
         {
             case nameof(IconSize): OnIconSizeChanged(); break;
             case nameof(IconSpacing): OnIconSpacingChanged(); break;
-            case nameof(Transparency): OnTransparencyChanged(); break;
-            case nameof(BorderRounding): OnBorderRoundingChanged(); break;
+            case nameof(Transparency): OnTransparencyChanged(); RefreshThemes(); break;
+            case nameof(BorderRounding): OnBorderRoundingChanged(); RefreshThemes(); break;
             case nameof(DockPadding): OnDockPaddingChanged(); break;
-            case nameof(DockColor): OnDockColorChanged(); OnPropertyChanged(nameof(DockColorBrush)); break;
+            case nameof(DockColor): OnDockColorChanged(); OnPropertyChanged(nameof(DockColorBrush)); RefreshThemes(); break;
+            case nameof(IconsLocked): _appServices.DockService.SetIconsLocked(IconsLocked); _dockRefreshAction(); break;
             case nameof(TintIcons): OnTintIconsChanged(); break;
             case nameof(TintColor): OnTintColorChanged(); OnPropertyChanged(nameof(TintColorBrush)); break;
             case nameof(SelectedLanguage): OnLanguageChanged(SelectedLanguage); break;
@@ -310,6 +345,9 @@ public partial class SettingsViewModel : ViewModelBase
     }
 
     private string T(string key) => _appServices.LocalizationService.Text(key);
+
+    /// <summary>Translated text, or <paramref name="fallback"/> for keys missing in the language.</summary>
+    private string L(string key, string fallback) => _appServices.LocalizationService.TextOr(key, fallback);
 
     private static Color ParseRgbColor(string rgb)
     {
@@ -400,6 +438,15 @@ public partial class SettingsViewModel : ViewModelBase
         _dockRefreshAction();
     }
 
+    public void AddSeparator()
+    {
+        int index = SelectedItemIndex >= 0 ? SelectedItemIndex + 1 : int.MaxValue;
+        _appServices.DockService.InsertItem(index, new DockSeparatorItemModel());
+        RefreshItemLabels();
+        SelectedItemIndex = Math.Min(index, ItemEntries.Count - 1);
+        _dockRefreshAction();
+    }
+
     public void RemoveSelected()
     {
         if (SelectedItemIndex < 0) return;
@@ -456,10 +503,20 @@ public partial class SettingsViewModel : ViewModelBase
         foreach (var item in _appServices.DockService.GetItems())
         {
             string label = _appServices.LocalizationService.DockItemLabel(item);
-            ItemEntries.Add(new DockItemListEntry(label, ResolveItemIcon(item)));
+            ItemEntries.Add(new DockItemListEntry(label, ResolveItemIcon(item), ResolveItemDetail(item)));
         }
         UpdateButtonStates();
     }
+
+    private string? ResolveItemDetail(DockItem item) => item switch
+    {
+        DockProgramItemModel p => p.ExecutablePath,
+        DockFolderItemModel f => f.FolderPath,
+        DockSeparatorItemModel => L("settings.items.kind.separator", "Separator"),
+        DockWindowsModuleItemModel => L("settings.items.kind.module", "Windows module"),
+        DockSettingsItemModel => L("settings.items.kind.settings", "Cedro settings"),
+        _ => null
+    };
 
     private Bitmap? ResolveItemIcon(DockItem item)
     {
@@ -519,6 +576,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     public void Shutdown()
     {
+        _appServices.ThemeService.ThemesChanged -= OnThemesChanged;
         if (_localizationRegistered)
         {
             _appServices.LocalizationService.RemoveListener(_applyLocalizedTexts);

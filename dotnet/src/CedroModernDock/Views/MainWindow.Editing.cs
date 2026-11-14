@@ -9,6 +9,7 @@ using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
 using Avalonia.Platform.Storage;
+using CedroModernDock.Controls;
 using CedroModernDock.Core.Models;
 using CedroModernDock.ViewModels;
 
@@ -36,17 +37,27 @@ public partial class MainWindow
         var entries = new List<object>();
         var dataContext = (e.Source as StyledElement)?.DataContext;
 
-        if (dataContext is DockItemViewModel item)
+        if (dataContext is DockItemViewModel { IsSeparator: false } item)
         {
+            entries.Add(MakeHeader(item.Icon, item.Label, DescribeItem(vm, item)));
             entries.AddRange(BuildItemEntries(vm, item));
+            entries.Add(new Separator());
+        }
+        else if (dataContext is DockItemViewModel separator)
+        {
+            entries.Add(MakeItem(vm.T("contextMenu.removeSeparator", "Remove this separator"), Glyphs.Remove,
+                () => vm.RemoveItem(separator), danger: true));
             entries.Add(new Separator());
         }
         else if (dataContext is RunningAppViewModel running)
         {
-            entries.Add(MakeItem(vm.T("contextMenu.pin", "Pin to dock"), () =>
-            {
-                vm.PinRunningApp(running.ExecutablePath, running.Label);
-            }));
+            entries.Add(MakeHeader(running.Icon, running.Label, vm.T("contextMenu.running", "Running, not pinned")));
+            entries.Add(MakeItem(vm.T("contextMenu.pin", "Pin to dock"), Glyphs.Pin,
+                () => vm.PinRunningApp(running.ExecutablePath, running.Label)));
+            entries.Add(MakeItem(vm.T("contextMenu.newWindow", "New window"), Glyphs.Launch,
+                () => LaunchExecutable(running.ExecutablePath)));
+            entries.Add(MakeItem(vm.T("contextMenu.closeAll", "Close all windows"), Glyphs.CloseWindows,
+                () => CloseAllWindows(running.ExecutablePath, running.Label), danger: true));
             entries.Add(new Separator());
         }
 
@@ -62,37 +73,139 @@ public partial class MainWindow
 
     private IEnumerable<object> BuildItemEntries(MainWindowViewModel vm, DockItemViewModel item)
     {
+        bool isProgram = item.Item is DockProgramItemModel;
+        if (isProgram && item.IsRunning)
+            yield return MakeItem(vm.T("contextMenu.newWindow", "New window"), Glyphs.Launch,
+                () => item.ClickCommand.Execute(item));
         if (item.CanEdit)
         {
-            yield return MakeItem(vm.T("contextMenu.rename", "Rename..."), () => _ = RenameItemAsync(vm, item));
-            yield return MakeItem(vm.T("contextMenu.changeTarget", "Change location..."), () => _ = RetargetItemAsync(vm, item));
-            yield return MakeItem(vm.T("contextMenu.openLocation", "Open file location"), () => OpenItemLocation(item));
+            yield return MakeItem(vm.T("contextMenu.rename", "Rename..."), Glyphs.Rename, () => _ = RenameItemAsync(vm, item));
+            yield return MakeItem(vm.T("contextMenu.changeTarget", "Change location..."), Glyphs.Retarget, () => _ = RetargetItemAsync(vm, item));
+            yield return MakeItem(vm.T("contextMenu.openLocation", "Open file location"), Glyphs.OpenLocation, () => OpenItemLocation(item));
         }
-        yield return MakeItem(vm.T("contextMenu.addSeparatorAfter", "Add a separator after"), () => vm.AddSeparator(item));
+        yield return MakeItem(vm.T("contextMenu.addSeparatorAfter", "Add a separator after"), Glyphs.Separator, () => vm.AddSeparator(item));
+        if (isProgram && item.IsRunning && item.ExecutablePath != null)
+            yield return MakeItem(vm.T("contextMenu.closeAll", "Close all windows"), Glyphs.CloseWindows,
+                () => CloseAllWindows(item.ExecutablePath, item.Label), danger: true);
         if (item.CanRemove)
-            yield return MakeItem(vm.T("contextMenu.removeItem", "Remove from dock"), () => vm.RemoveItem(item));
+            yield return MakeItem(vm.T("contextMenu.removeItem", "Remove from dock"), Glyphs.Remove, () => vm.RemoveItem(item), danger: true);
     }
 
     private IEnumerable<object> BuildDockEntries(MainWindowViewModel vm, int insertIndex)
     {
-        yield return MakeItem(vm.T("contextMenu.addProgram", "Add a program..."), () => _ = AddProgramAsync(vm));
-        yield return MakeItem(vm.T("contextMenu.addFolder", "Add a folder..."), () => _ = AddFolderAsync(vm));
-        yield return MakeItem(vm.T("contextMenu.addSeparatorHere", "Add a separator here"), () => vm.AddSeparatorAt(insertIndex));
+        yield return MakeItem(vm.T("contextMenu.addProgram", "Add a program..."), Glyphs.AddProgram, () => _ = AddProgramAsync(vm));
+        yield return MakeItem(vm.T("contextMenu.addFolder", "Add a folder..."), Glyphs.AddFolder, () => _ = AddFolderAsync(vm));
+        yield return MakeItem(vm.T("contextMenu.addSeparatorHere", "Add a separator here"), Glyphs.Separator, () => vm.AddSeparatorAt(insertIndex));
         yield return new Separator();
+        yield return BuildThemeSubmenu(vm);
         yield return MakeItem(
             vm.IconsLocked
                 ? vm.T("contextMenu.unlockIcons", "Unlock icons (move with the mouse)")
                 : vm.T("contextMenu.lockIcons", "Lock icons"),
+            vm.IconsLocked ? Glyphs.Unlock : Glyphs.Lock,
             () => vm.SetIconsLocked(!vm.IconsLocked));
         yield return new Separator();
-        yield return MakeItem(vm.T("contextMenu.settings", "Settings..."), vm.OpenSettings);
+        yield return MakeItem(vm.T("contextMenu.settings", "Settings..."), Glyphs.Settings, vm.OpenSettings);
+        if (vm.ExitAction != null)
+            yield return MakeItem(vm.T("contextMenu.exit", "Quit Cedro Dock"), Glyphs.Exit, vm.ExitAction);
     }
 
-    private static MenuItem MakeItem(string header, Action action)
+    /// <summary>"Theme" sub-menu: every installed theme, the active one checked.</summary>
+    private MenuItem BuildThemeSubmenu(MainWindowViewModel vm)
     {
-        var menuItem = new MenuItem { Header = header };
+        var parent = new MenuItem
+        {
+            Header = vm.T("contextMenu.theme", "Theme"),
+            Icon = Glyphs.MenuIcon(Glyphs.Theme)
+        };
+        var themes = _appServices?.ThemeService;
+        if (themes == null) return parent;
+        string activeId = themes.GetActiveTheme().Id;
+        var children = new List<object>();
+        foreach (var theme in themes.GetThemes())
+        {
+            var entry = new MenuItem
+            {
+                Header = theme.Name,
+                ToggleType = MenuItemToggleType.Radio,
+                IsChecked = theme.Id == activeId,
+                GroupName = "dockTheme"
+            };
+            string id = theme.Id;
+            entry.Click += (_, _) => themes.SetActiveTheme(id);
+            children.Add(entry);
+        }
+        children.Add(new Separator());
+        children.Add(MakeItem(vm.T("contextMenu.manageThemes", "Manage themes..."), Glyphs.Settings, vm.OpenThemesSettings));
+        parent.ItemsSource = children;
+        return parent;
+    }
+
+    private static MenuItem MakeItem(string header, string glyph, Action action, bool danger = false)
+    {
+        var menuItem = new MenuItem { Header = header, Icon = Glyphs.MenuIcon(glyph) };
+        if (danger) menuItem.Classes.Add("danger");
         menuItem.Click += (_, _) => action();
         return menuItem;
+    }
+
+    /// <summary>Non-clickable first row: the item's icon, name and a short description.</summary>
+    private static MenuItem MakeHeader(Avalonia.Media.IImage? icon, string title, string? subtitle)
+    {
+        var text = new StackPanel { Spacing = 1, VerticalAlignment = VerticalAlignment.Center };
+        text.Children.Add(new TextBlock
+        {
+            Text = title, FontWeight = Avalonia.Media.FontWeight.SemiBold, FontSize = 13,
+            MaxWidth = 220, TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis
+        });
+        if (!string.IsNullOrEmpty(subtitle))
+        {
+            var sub = new TextBlock
+            {
+                Text = subtitle, FontSize = 11, MaxWidth = 220,
+                TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis
+            };
+            sub.Bind(TextBlock.ForegroundProperty, sub.GetResourceObservable("CedroMenuSecondary"));
+            text.Children.Add(sub);
+        }
+        var row = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 10 };
+        if (icon != null)
+            row.Children.Add(new Image { Source = icon, Width = 28, Height = 28 });
+        row.Children.Add(text);
+        var header = new MenuItem { Header = row };
+        header.Classes.Add("menuHeader");
+        return header;
+    }
+
+    private static string? DescribeItem(MainWindowViewModel vm, DockItemViewModel item) => item.Item switch
+    {
+        DockProgramItemModel p => item.IsRunning
+            ? vm.T("contextMenu.runningProgram", "Running") + " · " + Path.GetFileName(p.ExecutablePath)
+            : Path.GetFileName(p.ExecutablePath),
+        DockFolderItemModel f => f.FolderPath,
+        _ => null
+    };
+
+    private static void LaunchExecutable(string path)
+    {
+        try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
+        catch { /* best-effort */ }
+    }
+
+    /// <summary>Asks every window of the program to close (WM_CLOSE, like the taskbar).</summary>
+    private void CloseAllWindows(string executablePath, string label)
+    {
+        if (_appServices == null) return;
+        var service = _appServices.WindowPreviewService;
+        _ = Task.Run(() =>
+        {
+            try
+            {
+                foreach (var window in service.LoadPreview(new DockProgramItemModel(label, executablePath)))
+                    service.Close(window);
+            }
+            catch { /* best-effort */ }
+        });
     }
 
     private async Task RenameItemAsync(MainWindowViewModel vm, DockItemViewModel item)
@@ -197,48 +310,7 @@ public partial class MainWindow
     /// <summary>Small modal text prompt. Returns null when cancelled.</summary>
     private async Task<string?> PromptTextAsync(string title, string message, string initial,
         string okText, string cancelText)
-    {
-        var textBox = new TextBox { Text = initial, MinWidth = 280 };
-        var ok = new Button { Content = okText, IsDefault = true, MinWidth = 80, HorizontalContentAlignment = HorizontalAlignment.Center };
-        var cancel = new Button { Content = cancelText, IsCancel = true, MinWidth = 80, HorizontalContentAlignment = HorizontalAlignment.Center };
-
-        var dialog = new Window
-        {
-            Title = title,
-            SizeToContent = SizeToContent.WidthAndHeight,
-            CanResize = false,
-            ShowInTaskbar = false,
-            WindowStartupLocation = WindowStartupLocation.CenterScreen,
-            Topmost = true,
-            Content = new StackPanel
-            {
-                Margin = new Thickness(16),
-                Spacing = 10,
-                Children =
-                {
-                    new TextBlock { Text = message },
-                    textBox,
-                    new StackPanel
-                    {
-                        Orientation = Orientation.Horizontal,
-                        HorizontalAlignment = HorizontalAlignment.Right,
-                        Spacing = 8,
-                        Children = { ok, cancel }
-                    }
-                }
-            }
-        };
-
-        ok.Click += (_, _) => dialog.Close(textBox.Text ?? "");
-        cancel.Click += (_, _) => dialog.Close(null);
-        dialog.Opened += (_, _) =>
-        {
-            textBox.Focus();
-            textBox.SelectAll();
-        };
-
-        return await dialog.ShowDialog<string?>(this);
-    }
+        => await Dialogs.PromptAsync(this, title, message, initial, okText, cancelText);
 
     // ---------------------------------------------------------------------
     // Drag-and-drop reordering (only while icons are unlocked)

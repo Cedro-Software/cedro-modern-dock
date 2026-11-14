@@ -2,7 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              x:Class="CedroModernDock.App"
              xmlns:local="using:CedroModernDock"
-             RequestedThemeVariant="Default">
+             RequestedThemeVariant="Dark">
 
     <Application.DataTemplates>
         <local:ViewLocator/>
@@ -13,5 +13,7 @@
         <!-- The Avalonia ColorPicker is not themed by the base Fluent theme; its
              control template comes from this separate package resource. -->
         <StyleInclude Source="avares://Avalonia.Controls.ColorPicker/Themes/Fluent/Fluent.xaml" />
+        <!-- Cedro look: menus, tooltips, settings building blocks. -->
+        <StyleInclude Source="avares://CedroModernDock/Styles/CedroStyles.axaml" />
     </Application.Styles>
 </Application>

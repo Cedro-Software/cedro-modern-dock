@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "braise",
+  "name": "Braise",
+  "author": "Cedro",
+  "version": "1.0.0",
+  "description": "Noir métallique et rouge vif, énergie gamer.",
+  "dock": {
+    "gradient": [
+      "#FF26262A",
+      "#FF0E0E10"
+    ],
+    "gradientAngle": 90,
+    "cornerRadius": 3,
+    "padding": 8,
+    "borderColor": "#FFD0021B",
+    "borderThickness": 2,
+    "highlight": "#40FFFFFF",
+    "shadow": {
+      "color": "#80D0021B",
+      "blur": 16,
+      "offsetY": 2
+    }
+  },
+  "icons": {
+    "hoverZoom": 1.35
+  },
+  "indicator": {
+    "style": "line",
+    "color": "#FFFF1A2E",
+    "size": 3
+  },
+  "separator": {
+    "style": "line",
+    "color": "#FF5A5A60",
+    "thickness": 2
+  },
+  "tooltip": {
+    "background": "#F5141416",
+    "foreground": "#FFFFFFFF",
+    "borderColor": "#FFD0021B",
+    "cornerRadius": 2
+  },
+  "menu": {
+    "background": "#F7141416",
+    "foreground": "#FFF2F2F2",
+    "secondaryForeground": "#FF8C8C90",
+    "hover": "#FF2A0A0E",
+    "accent": "#FFFF1A2E",
+    "borderColor": "#FF3A3A3E",
+    "danger": "#FFFF5252",
+    "cornerRadius": 3
+  }
+}

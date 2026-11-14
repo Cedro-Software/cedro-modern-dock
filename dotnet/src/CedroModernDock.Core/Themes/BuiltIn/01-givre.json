@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "givre",
+  "name": "Givre",
+  "author": "Cedro",
+  "version": "1.0.0",
+  "description": "Panneau givré clair, arrondi généreux, ambiance macOS moderne.",
+  "dock": {
+    "background": "#B8F4F4F7",
+    "cornerRadius": 20,
+    "padding": 10,
+    "borderColor": "#66FFFFFF",
+    "borderThickness": 1,
+    "highlight": "#80FFFFFF",
+    "shadow": {
+      "color": "#40000000",
+      "blur": 24,
+      "offsetY": 6
+    }
+  },
+  "icons": {
+    "hoverZoom": 1.45
+  },
+  "indicator": {
+    "style": "dot",
+    "color": "#CC1C1C1E",
+    "size": 4
+  },
+  "separator": {
+    "style": "line",
+    "color": "#331C1C1E",
+    "thickness": 1
+  },
+  "tooltip": {
+    "background": "#F2F6F6F8",
+    "foreground": "#FF1C1C1E",
+    "borderColor": "#1A000000",
+    "cornerRadius": 8
+  },
+  "menu": {
+    "background": "#F7F6F6F8",
+    "foreground": "#FF1C1C1E",
+    "secondaryForeground": "#FF6E6E73",
+    "hover": "#FFE5E5EA",
+    "accent": "#FF0A84FF",
+    "borderColor": "#1A000000",
+    "danger": "#FFFF3B30",
+    "cornerRadius": 10
+  }
+}

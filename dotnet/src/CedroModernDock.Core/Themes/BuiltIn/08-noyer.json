@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "noyer",
+  "name": "Noyer",
+  "author": "Cedro",
+  "version": "1.0.0",
+  "description": "Étagère en bois chaude et biseautée, charme rétro.",
+  "dock": {
+    "gradient": [
+      "#FF8B5A2B",
+      "#FF6B4220",
+      "#FF4A2C14"
+    ],
+    "gradientAngle": 90,
+    "cornerRadius": 5,
+    "padding": 10,
+    "borderColor": "#FF2E1A0A",
+    "borderThickness": 2,
+    "highlight": "#66F5D7A1",
+    "shadow": {
+      "color": "#80000000",
+      "blur": 14,
+      "offsetY": 5
+    }
+  },
+  "icons": {
+    "hoverZoom": 1.4
+  },
+  "indicator": {
+    "style": "dot",
+    "color": "#FFF5C26B",
+    "size": 5
+  },
+  "separator": {
+    "style": "line",
+    "color": "#993A220E",
+    "thickness": 2
+  },
+  "tooltip": {
+    "background": "#F23B2412",
+    "foreground": "#FFF8E8CC",
+    "borderColor": "#FF8B5A2B",
+    "cornerRadius": 4
+  },
+  "menu": {
+    "background": "#F7F4E9D8",
+    "foreground": "#FF3B2412",
+    "secondaryForeground": "#FF8A6A4A",
+    "hover": "#FFE8D3B0",
+    "accent": "#FFB5651D",
+    "borderColor": "#FF8B5A2B",
+    "danger": "#FFB3261E",
+    "cornerRadius": 4
+  }
+}

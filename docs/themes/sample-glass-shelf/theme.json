@@ -1,0 +1,49 @@
+{
+  "schemaVersion": 1,
+  "id": "sample-glass-shelf",
+  "name": "Glass Shelf (sample)",
+  "author": "Cedro samples",
+  "version": "1.0.0",
+  "description": "Sample image-skin theme: a translucent glass shelf drawn from a 9-slice PNG, with an image indicator and image separators.",
+  "dock": {
+    "background": "#00000000",
+    "cornerRadius": 14,
+    "padding": 10,
+    "image": {
+      "path": "background.png",
+      "slice": [20, 20, 20, 20],
+      "opacity": 1
+    }
+  },
+  "icons": {
+    "hoverZoom": 1.4
+  },
+  "indicator": {
+    "style": "image",
+    "image": "indicator.png",
+    "size": 8,
+    "color": "#FF9ED8FF"
+  },
+  "separator": {
+    "style": "image",
+    "image": "separator.png",
+    "imageVertical": "separator-vertical.png",
+    "color": "#66FFFFFF"
+  },
+  "tooltip": {
+    "background": "#E6F4F8FC",
+    "foreground": "#FF1B2430",
+    "borderColor": "#66FFFFFF",
+    "cornerRadius": 8
+  },
+  "menu": {
+    "background": "#F2F6F9FC",
+    "foreground": "#FF1B2430",
+    "secondaryForeground": "#FF66717F",
+    "hover": "#FFDDEBF8",
+    "accent": "#FF3A9BEA",
+    "borderColor": "#26000000",
+    "danger": "#FFD93A3A",
+    "cornerRadius": 8
+  }
+}

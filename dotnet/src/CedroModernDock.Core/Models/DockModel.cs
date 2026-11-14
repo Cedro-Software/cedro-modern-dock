@@ -101,6 +101,10 @@ public class DockModel
     [JsonPropertyName("iconsLocked")]
     public bool IconsLocked { get; set; } = true;
 
+    /// <summary>Id of the active theme (built-in or installed in the themes folder).</summary>
+    [JsonPropertyName("themeId")]
+    public string ThemeId { get; set; } = "cedro";
+
     public void AddItem(DockItem item) => Items.Add(item);
 
     public void InsertItem(int index, DockItem item)

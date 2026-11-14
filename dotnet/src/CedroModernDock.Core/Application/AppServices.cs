@@ -14,5 +14,6 @@ public sealed record AppServices(
     DockItemActionService ItemActionService,
     WindowPreviewService WindowPreviewService,
     IIconGateway IconGateway,
-    LocalizationService LocalizationService
+    LocalizationService LocalizationService,
+    ThemeService ThemeService
 );

@@ -1,0 +1,48 @@
+{
+  "schemaVersion": 1,
+  "id": "velours",
+  "name": "Velours",
+  "author": "Cedro",
+  "version": "1.0.0",
+  "description": "Pastille mate aubergine, douce et feutrée, accent ambre.",
+  "dock": {
+    "background": "#F23A2A45",
+    "cornerRadius": 40,
+    "padding": 8,
+    "highlight": "#1AFFFFFF",
+    "shadow": {
+      "color": "#59000000",
+      "blur": 22,
+      "offsetY": 6
+    }
+  },
+  "icons": {
+    "hoverZoom": 1.3
+  },
+  "indicator": {
+    "style": "dot",
+    "color": "#FFFFB74D",
+    "size": 5
+  },
+  "separator": {
+    "style": "dots",
+    "color": "#66FFFFFF",
+    "thickness": 2
+  },
+  "tooltip": {
+    "background": "#F24A3758",
+    "foreground": "#FFFFF3E0",
+    "borderColor": "#00000000",
+    "cornerRadius": 12
+  },
+  "menu": {
+    "background": "#F73A2A45",
+    "foreground": "#FFF5EEF8",
+    "secondaryForeground": "#FFB8A6C4",
+    "hover": "#FF4E3A5C",
+    "accent": "#FFFFB74D",
+    "borderColor": "#33FFFFFF",
+    "danger": "#FFFF6E6E",
+    "cornerRadius": 12
+  }
+}

@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "aurore",
+  "name": "Aurore",
+  "author": "Cedro",
+  "version": "1.0.0",
+  "description": "Dégradé bleu, violet et rose, vif et joyeux.",
+  "dock": {
+    "gradient": [
+      "#E62B5CFF",
+      "#E68A4DFF",
+      "#E6FF4D9E"
+    ],
+    "gradientAngle": 0,
+    "cornerRadius": 16,
+    "padding": 8,
+    "borderColor": "#4DFFFFFF",
+    "borderThickness": 1,
+    "highlight": "#59FFFFFF",
+    "shadow": {
+      "color": "#592B1A66",
+      "blur": 24,
+      "offsetY": 6
+    }
+  },
+  "icons": {
+    "hoverZoom": 1.4
+  },
+  "indicator": {
+    "style": "pill",
+    "color": "#FFFFFFFF",
+    "size": 4
+  },
+  "separator": {
+    "style": "line",
+    "color": "#66FFFFFF",
+    "thickness": 1
+  },
+  "tooltip": {
+    "background": "#F2241A4A",
+    "foreground": "#FFFFFFFF",
+    "borderColor": "#66FF4D9E",
+    "cornerRadius": 10
+  },
+  "menu": {
+    "background": "#F71C1640",
+    "foreground": "#FFFFFFFF",
+    "secondaryForeground": "#FFB9B0E0",
+    "hover": "#FF2E2566",
+    "accent": "#FFFF4D9E",
+    "borderColor": "#4D8A4DFF",
+    "danger": "#FFFF5C5C",
+    "cornerRadius": 10
+  }
+}

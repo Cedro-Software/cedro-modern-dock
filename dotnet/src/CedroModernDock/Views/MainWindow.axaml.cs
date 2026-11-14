@@ -97,6 +97,7 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel vm)
         {
             vm.OpenSettingsAction = () => OpenSettings(vm);
+            vm.OpenThemesSettingsAction = () => OpenSettings(vm, SettingsViewModel.PageThemes);
             vm.RepositionAction = () => ApplyDockPosition();
             vm.PreviewDismissAction = HidePreview;
             vm.Initialize();
@@ -273,9 +274,10 @@ public partial class MainWindow : Window
             _previewPopup.CancelHide();
             return;
         }
+        var dockVm = (MainWindowViewModel)DataContext!;
         _previewPopup.ShowFor(windows, label,
-            appearance.GetDockColorRGB(), appearance.GetDockBorderRounding(),
-            appearance.GetDockTransparencyPercentage() / 100.0, button, DockBar,
+            dockVm.PreviewColorRgb, dockVm.BorderRounding,
+            dockVm.PreviewOpacity, button, DockBar,
             verticalDock: _appServices.AppearanceService.GetVerticalDock(),
             horizontalAnchor: _appServices.PositioningService.GetHorizontalAnchor());
     }
@@ -393,9 +395,10 @@ public partial class MainWindow : Window
         if (anchor == null) return;
         _previewPopup.CancelHide();
         var appearance = _appServices.AppearanceService;
+        var dockVm = (MainWindowViewModel)DataContext!;
         _previewPopup.ShowFor(windows, label,
-            appearance.GetDockColorRGB(), appearance.GetDockBorderRounding(),
-            appearance.GetDockTransparencyPercentage() / 100.0, anchor, DockBar,
+            dockVm.PreviewColorRgb, dockVm.BorderRounding,
+            dockVm.PreviewOpacity, anchor, DockBar,
             verticalDock: _appServices.AppearanceService.GetVerticalDock(),
             horizontalAnchor: _appServices.PositioningService.GetHorizontalAnchor());
     }
@@ -453,14 +456,15 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Opens the settings window. Port of App.java openSettingsWindow().</summary>
-    private void OpenSettings(MainWindowViewModel vm)
+    private void OpenSettings(MainWindowViewModel vm, int? page = null)
     {
         if (_appServices == null) return;
         SettingsWindow.Open(
             _appServices,
             this,
             dockRefreshAction: vm.UpdateDockUI,
-            positioningModeChangeAction: mode => HandlePositioningModeChange(mode)
+            positioningModeChangeAction: mode => HandlePositioningModeChange(mode),
+            page: page
         );
     }
 

@@ -12,6 +12,9 @@
 
   <ItemGroup>
     <EmbeddedResource Include="i18n\*.properties" />
+    <EmbeddedResource Include="Themes\BuiltIn\*.json" />
+    <!-- Theme format guide, copied into the user's themes folder on demand. -->
+    <EmbeddedResource Include="..\..\..\docs\THEMES.md" LogicalName="CedroModernDock.Core.THEMES.md" />
   </ItemGroup>
 
 </Project>

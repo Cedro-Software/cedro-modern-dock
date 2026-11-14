@@ -43,7 +43,7 @@ public partial class App : Application
             // Wire tray icon events (Avalonia TrayIcon events can't be set via XAML string attributes).
             WireTrayIcon(appServices.LocalizationService);
 
-            var viewModel = new MainWindowViewModel(appServices);
+            var viewModel = new MainWindowViewModel(appServices) { ExitAction = OnTrayExit };
             _mainViewModel = viewModel;
 
             var mainWindow = new MainWindow { DataContext = viewModel };
@@ -171,7 +171,8 @@ public partial class App : Application
             ),
             WindowPreviewService: new WindowPreviewService(new Win32WindowQueryGateway()),
             IconGateway: new CachedWindowsIconGateway(),
-            LocalizationService: new LocalizationService(dockService)
+            LocalizationService: new LocalizationService(dockService),
+            ThemeService: new ThemeService(dockService, new FileSystemThemeRepository())
         );
     }
 
