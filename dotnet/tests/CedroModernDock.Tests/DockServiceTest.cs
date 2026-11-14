@@ -86,6 +86,46 @@ public class DockServiceTest
         Assert.Equal(new[] { "B", "C", "A" }, labels);
     }
 
+    [Fact]
+    public void InsertItemPlacesTheItemAtTheGivenIndex()
+    {
+        var repository = new InMemoryDockRepository();
+        var service = new DockService(repository);
+        service.AddItem(new DockProgramItemModel("A", @"C:\tools\a.exe"));
+        service.AddItem(new DockProgramItemModel("B", @"C:\tools\b.exe"));
+
+        service.InsertItem(1, new DockSeparatorItemModel());
+
+        Assert.IsType<DockSeparatorItemModel>(service.GetItems()[1]);
+        Assert.Equal(3, service.GetItems().Count);
+        Assert.Same(repository.SavedModel, service.GetDock());
+    }
+
+    [Fact]
+    public void InsertItemClampsAnOutOfRangeIndexToTheEnd()
+    {
+        var repository = new InMemoryDockRepository();
+        var service = new DockService(repository);
+        service.AddItem(new DockProgramItemModel("A", @"C:\tools\a.exe"));
+
+        service.InsertItem(int.MaxValue, new DockSeparatorItemModel());
+
+        Assert.IsType<DockSeparatorItemModel>(service.GetItems()[^1]);
+    }
+
+    [Fact]
+    public void SetIconsLockedIsPersisted()
+    {
+        var repository = new InMemoryDockRepository();
+        var service = new DockService(repository);
+        Assert.True(service.GetIconsLocked());
+
+        service.SetIconsLocked(false);
+
+        Assert.False(service.GetIconsLocked());
+        Assert.False(repository.SavedModel!.IconsLocked);
+    }
+
     private sealed class InMemoryDockRepository : IDockRepository
     {
         private readonly DockModel _model = new();

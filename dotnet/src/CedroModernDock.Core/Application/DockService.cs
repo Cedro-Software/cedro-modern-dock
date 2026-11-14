@@ -28,6 +28,20 @@ public class DockService
         SaveChanges();
     }
 
+    public void InsertItem(int index, DockItem item)
+    {
+        _dock.InsertItem(index, item);
+        SaveChanges();
+    }
+
+    public bool GetIconsLocked() => _dock.IconsLocked;
+
+    public void SetIconsLocked(bool locked)
+    {
+        _dock.IconsLocked = locked;
+        SaveChanges();
+    }
+
     public void RemoveItem(int index)
     {
         _dock.RemoveItem(index);

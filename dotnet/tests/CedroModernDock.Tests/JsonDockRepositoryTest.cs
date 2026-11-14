@@ -88,6 +88,38 @@ public class JsonDockRepositoryTest
     }
 
     [Fact]
+    public void SavesAndLoadsSeparatorItemsAndIconsLock()
+    {
+        string configPath = Path.Combine(_tempDir, "config.json");
+        var repository = new JsonDockRepository(configPath);
+
+        var model = new DockModel { IconsLocked = false };
+        model.AddItem(new DockProgramItemModel("A", @"C:\tools\a.exe"));
+        model.AddItem(new DockSeparatorItemModel());
+
+        repository.Save(model);
+        DockModel loadedModel = repository.Load();
+
+        Assert.Equal(2, loadedModel.Items.Count);
+        var separator = Assert.IsType<DockSeparatorItemModel>(loadedModel.Items[1]);
+        Assert.Equal(DockItemType.SEPARATOR, separator.Type);
+        Assert.False(loadedModel.IconsLocked);
+        CleanupTempDir();
+    }
+
+    [Fact]
+    public void LoadsConfigWithoutIconsLockedAsLocked()
+    {
+        // Configs saved before the lock setting existed have no iconsLocked key.
+        string configPath = Path.Combine(_tempDir, "config.json");
+        File.WriteAllText(configPath, """{ "items": [] }""");
+        var repository = new JsonDockRepository(configPath);
+
+        Assert.True(repository.Load().IconsLocked);
+        CleanupTempDir();
+    }
+
+    [Fact]
     public void LoadsConfigWithoutDockPaddingWithDefault()
     {
         // Configs saved before the padding setting existed have no dockPadding key.

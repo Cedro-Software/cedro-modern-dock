@@ -469,6 +469,9 @@ public partial class SettingsViewModel : ViewModelBase
             return icon ?? IconLoader.LoadFromAsset("Assets/icons/folder.png");
         }
 
+        if (item is DockSeparatorItemModel)
+            return IconLoader.LoadFromAsset("Assets/icons/open-softwares-separator-1.png");
+
         if (item is DockWindowsModuleItemModel moduleItem)
         {
             return IconLoader.LoadWindowsModuleIcon(moduleItem.Module)

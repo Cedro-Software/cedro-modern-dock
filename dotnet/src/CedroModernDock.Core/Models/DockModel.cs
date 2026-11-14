@@ -97,7 +97,14 @@ public class DockModel
     [JsonPropertyName("tintColorRGB")]
     public string TintColorRGB { get; set; } = "0, 80, 140";
 
+    /// <summary>When false, pinned icons can be reordered by drag and drop on the dock.</summary>
+    [JsonPropertyName("iconsLocked")]
+    public bool IconsLocked { get; set; } = true;
+
     public void AddItem(DockItem item) => Items.Add(item);
+
+    public void InsertItem(int index, DockItem item)
+        => Items.Insert(Math.Clamp(index, 0, Items.Count), item);
 
     public void RemoveItem(int index) => Items.RemoveAt(index);
 
