@@ -29,13 +29,16 @@
             CornerRadius="{Binding DockCornerRadius}"
             Padding="{Binding DockPaddingThickness}"
             Margin="{Binding ZoomHeadroomThickness}"
+            BorderBrush="{Binding DockBorderBrush}"
+            BorderThickness="1"
+            ContextRequested="OnDockContextRequested"
             HorizontalAlignment="Center"
             VerticalAlignment="Center">
 
         <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}">
             <!-- Pinned dock items. The Fluent theme makes ItemsControl clip to its
                  bounds, which would cut hover-zoomed icons at the bar's padding. -->
-            <ItemsControl ItemsSource="{Binding Items}" ClipToBounds="False">
+            <ItemsControl x:Name="PinnedItems" ItemsSource="{Binding Items}" ClipToBounds="False">
                 <ItemsControl.ItemsPanel>
                     <ItemsPanelTemplate>
                         <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}" />
@@ -44,7 +47,26 @@
 
                 <ItemsControl.ItemTemplate>
                     <DataTemplate x:DataType="vm:DockItemViewModel">
+                      <!-- Transparent background so separators are hit-testable
+                           (right-click menu, drag reorder). -->
+                      <Panel Background="Transparent" Opacity="{Binding Opacity}">
+                        <!-- User-added separator -->
+                        <Image Source="/Assets/icons/open-softwares-separator-1.png"
+                               Width="14" Height="{Binding IconSize}"
+                               Stretch="Uniform"
+                               VerticalAlignment="Center"
+                               Margin="4,0"
+                               IsVisible="{Binding ShowHorizontalSeparator}"
+                               RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                        <Image Source="/Assets/icons/open-softwares-separator-2.png"
+                               Width="{Binding IconSize}" Height="14"
+                               Stretch="Uniform"
+                               HorizontalAlignment="Center"
+                               Margin="0,4"
+                               IsVisible="{Binding ShowVerticalSeparator}"
+                               RenderOptions.BitmapInterpolationMode="HighQuality"/>
                         <Button Command="{Binding ClickCommand}"
+                                IsVisible="{Binding IsButton}"
                                 CommandParameter="{Binding}"
                                 Background="Transparent"
                                 BorderBrush="Transparent"
@@ -98,6 +120,7 @@
                                          IsVisible="{Binding IsRunning}" />
                             </StackPanel>
                         </Button>
+                      </Panel>
                     </DataTemplate>
                 </ItemsControl.ItemTemplate>
             </ItemsControl>

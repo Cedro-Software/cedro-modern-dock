@@ -45,6 +45,32 @@ public class DockItemViewModel : ViewModelBase
     /// <summary>Command invoked when the dock item is clicked.</summary>
     public ICommand ClickCommand { get; }
 
+    /// <summary>True for a separator item (rendered as a divider, not a button).</summary>
+    public bool IsSeparator => Item is DockSeparatorItemModel;
+
+    /// <summary>True for items rendered as a clickable icon button.</summary>
+    public bool IsButton => !IsSeparator;
+
+    /// <summary>Set by the dock: drives the separator's orientation.</summary>
+    public bool IsVerticalDock { get; set; }
+
+    public bool ShowHorizontalSeparator => IsSeparator && !IsVerticalDock;
+    public bool ShowVerticalSeparator => IsSeparator && IsVerticalDock;
+
+    /// <summary>Program and folder items can be renamed and retargeted.</summary>
+    public bool CanEdit => Item is DockProgramItemModel || Item is DockFolderItemModel;
+
+    /// <summary>The settings item must stay in the dock (same rule as the settings window).</summary>
+    public bool CanRemove => Item is not DockSettingsItemModel;
+
+    private double _opacity = 1.0;
+    /// <summary>Lowered while the item is being dragged.</summary>
+    public double Opacity
+    {
+        get => _opacity;
+        set => SetProperty(ref _opacity, value);
+    }
+
     public DockItemViewModel(
         DockItem item,
         string label,

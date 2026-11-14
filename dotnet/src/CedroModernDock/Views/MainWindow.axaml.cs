@@ -36,6 +36,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        SetupDragReorder();
+        SetupFileDrop();
         PositionChanged += OnDockPositionChanged;
         _positionPersistTimer.Tick += (_, _) =>
         {
@@ -407,6 +409,9 @@ public partial class MainWindow : Window
         if (!e.Pointer.IsPrimary)
             return;
         if (e.Source is Visual source && source.FindAncestorOfType<Button>() != null)
+            return;
+        // Separators are not buttons, but pressing one must not drag the window.
+        if (e.Source is StyledElement { DataContext: DockItemViewModel })
             return;
         // The zoom headroom around the bar is transparent: pressing it must not
         // drag the dock.

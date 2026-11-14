@@ -177,15 +177,193 @@ public partial class MainWindowViewModel : ViewModelBase
                 Items.Add(vm);
             }
         }
+        IconsLocked = _appServices.DockService.GetIconsLocked();
         ApplyAppearance();
         RepositionAction?.Invoke();
         PreviewDismissAction?.Invoke();
     }
-    // --- continued below ---
+
+    // --- Dock editing (context menus, drag reorder) ---
+
+    private bool _iconsLocked = true;
+    /// <summary>When false, pinned icons can be reordered by drag and drop.</summary>
+    public bool IconsLocked
+    {
+        get => _iconsLocked;
+        private set
+        {
+            if (SetProperty(ref _iconsLocked, value))
+            {
+                OnPropertyChanged(nameof(IconsUnlocked));
+                OnPropertyChanged(nameof(DockBorderBrush));
+            }
+        }
+    }
+
+    public bool IconsUnlocked => !IconsLocked;
+
+    /// <summary>Thin highlight around the dock while icons are unlocked.</summary>
+    public IBrush DockBorderBrush => IconsLocked
+        ? Brushes.Transparent
+        : new SolidColorBrush(Color.FromArgb(150, 255, 255, 255));
+
+    /// <summary>Returns the translated text, or the fallback when the key is missing.</summary>
+    public string T(string key, string fallback)
+        => _appServices?.LocalizationService.TextOr(key, fallback) ?? fallback;
+
+    public void SetIconsLocked(bool locked)
+    {
+        if (_appServices == null) return;
+        _appServices.DockService.SetIconsLocked(locked);
+        IconsLocked = locked;
+    }
+
+    private int IndexOfModel(DockItemViewModel vm)
+        => _appServices?.DockService.GetItems().IndexOf(vm.Item) ?? -1;
+
+    /// <summary>Inserts a separator after <paramref name="after"/>.</summary>
+    public void AddSeparator(DockItemViewModel after)
+    {
+        int index = IndexOfModel(after);
+        AddSeparatorAt(index >= 0 ? index + 1 : int.MaxValue);
+    }
+
+    /// <summary>Inserts a separator at <paramref name="index"/> (clamped; MaxValue = end).</summary>
+    public void AddSeparatorAt(int index)
+    {
+        if (_appServices == null) return;
+        _appServices.DockService.InsertItem(index, new DockSeparatorItemModel());
+        UpdateDockUI();
+    }
+
+    /// <summary>
+    /// Adds files dropped on the dock at <paramref name="index"/>: folders become
+    /// folder items, .exe files and shortcuts to .exe files become program items.
+    /// Returns the number of items added.
+    /// </summary>
+    public int AddDroppedPaths(IEnumerable<string> paths, int index)
+    {
+        if (_appServices == null) return 0;
+        int added = 0;
+        foreach (var raw in paths)
+        {
+            DockItem? item = null;
+            if (Directory.Exists(raw))
+            {
+                item = CreateFolderItem(raw);
+            }
+            else
+            {
+                string? exe = ShortcutResolver.ResolveExecutable(raw);
+                if (exe != null)
+                {
+                    var sel = ProgramSelectionResolver.Resolve(exe);
+                    _appServices.IconGateway.CacheProgramIcon(sel.ExecutablePath);
+                    // Keep the shortcut's name (e.g. "Visual Studio Code" rather than "Code").
+                    string label = raw.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase)
+                        ? Path.GetFileNameWithoutExtension(raw)
+                        : sel.Label;
+                    item = new DockProgramItemModel(label, sel.ExecutablePath);
+                }
+            }
+            if (item == null) continue;
+            _appServices.DockService.InsertItem(index == int.MaxValue ? index : index + added, item);
+            added++;
+        }
+        if (added > 0) UpdateDockUI();
+        return added;
+    }
+
+    private DockFolderItemModel CreateFolderItem(string path)
+    {
+        var label = Path.GetFileName(Path.TrimEndingDirectorySeparator(path));
+        if (string.IsNullOrWhiteSpace(label))
+            label = path;
+        _appServices!.IconGateway.CacheFolderIcon(path);
+        return new DockFolderItemModel(label, path);
+    }
+
+    public void RemoveItem(DockItemViewModel vm)
+    {
+        if (_appServices == null || !vm.CanRemove) return;
+        int index = IndexOfModel(vm);
+        if (index < 0) return;
+        _appServices.DockService.RemoveItem(index);
+        UpdateDockUI();
+    }
+
+    public void RenameItem(DockItemViewModel vm, string newLabel)
+    {
+        if (_appServices == null || !vm.CanEdit) return;
+        newLabel = newLabel.Trim();
+        if (newLabel.Length == 0) return;
+        vm.Item.Label = newLabel;
+        _appServices.DockService.SaveChanges();
+        UpdateDockUI();
+    }
+
+    /// <summary>Changes the target of a program (.exe) or folder item.</summary>
+    public void RetargetItem(DockItemViewModel vm, string newPath)
+    {
+        if (_appServices == null || !vm.CanEdit || string.IsNullOrWhiteSpace(newPath)) return;
+        if (vm.Item is DockProgramItemModel)
+        {
+            var sel = ProgramSelectionResolver.Resolve(newPath);
+            _appServices.IconGateway.CacheProgramIcon(sel.ExecutablePath);
+            vm.Item.Path = sel.ExecutablePath;
+        }
+        else
+        {
+            vm.Item.Path = newPath;
+        }
+        _appServices.DockService.SaveChanges();
+        UpdateDockUI();
+    }
+
+    /// <summary>
+    /// Persists a drag-reorder already applied to <see cref="Items"/>: the item
+    /// moved from <paramref name="fromIndex"/> to final position <paramref name="toIndex"/>.
+    /// </summary>
+    public void CommitMove(int fromIndex, int toIndex)
+    {
+        if (_appServices == null || fromIndex == toIndex) return;
+        // DockModel.MoveItem takes a gap index (0..Count), not a final position.
+        _appServices.DockService.MoveItem(fromIndex, toIndex > fromIndex ? toIndex + 1 : toIndex);
+    }
+
+    public void OpenSettings() => OpenSettingsAction?.Invoke();
+
+    public void AddProgram(string path)
+    {
+        if (_appServices == null) return;
+        var sel = ProgramSelectionResolver.Resolve(path);
+        _appServices.IconGateway.CacheProgramIcon(sel.ExecutablePath);
+        _appServices.DockService.AddItem(new DockProgramItemModel(sel.Label, sel.ExecutablePath));
+        UpdateDockUI();
+    }
+
+    public void AddFolder(string path)
+    {
+        if (_appServices == null) return;
+        _appServices.DockService.AddItem(CreateFolderItem(path));
+        UpdateDockUI();
+    }
+
+    /// <summary>Pins a running-but-unpinned app to the dock.</summary>
+    public void PinRunningApp(string executablePath, string label)
+    {
+        if (_appServices == null) return;
+        _appServices.IconGateway.CacheProgramIcon(executablePath);
+        _appServices.DockService.AddItem(new DockProgramItemModel(label, executablePath));
+        UpdateDockUI();
+    }
 
     private DockItemViewModel? CreateItemViewModel(DockItem item, LocalizationService loc)
     {
         string label = loc.DockItemLabel(item);
+
+        if (item is DockSeparatorItemModel)
+            return new DockItemViewModel(item, label, LaunchCommand) { IsVerticalDock = IsVerticalDock };
 
         if (item is DockSettingsItemModel)
         {
