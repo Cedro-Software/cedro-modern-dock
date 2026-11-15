@@ -53,7 +53,14 @@
            Margin="{Binding ZoomHeadroomThickness}"
            HorizontalAlignment="Center"
            VerticalAlignment="Center"
+           RenderTransformOrigin="50%, 50%"
            ContextRequested="OnDockContextRequested">
+
+        <Panel.Transitions>
+            <Transitions>
+                <DoubleTransition Property="Opacity" Duration="0:0:0.3" Easing="CubicEaseOut"/>
+            </Transitions>
+        </Panel.Transitions>
 
         <!-- 1. Background: color / gradient, border, shadow -->
         <Border Background="{Binding DockBackground}"

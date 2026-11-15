@@ -33,6 +33,7 @@ public partial class MainWindow
     {
         var vm = DockVm;
         if (vm == null || sender is not Control anchor) return;
+        WakeDiscreetMode();
         e.Handled = true;
         HidePreview();
 

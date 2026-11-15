@@ -14,6 +14,7 @@ namespace CedroModernDock.Views;
 public partial class SettingsWindow : Window
 {
     private static SettingsWindow? _instance;
+    public static bool IsAnyOpen => _instance?.IsVisible == true;
 
     private const double DragThresholdPixels = 4;
 
@@ -41,6 +42,7 @@ public partial class SettingsWindow : Window
     public static void Open(AppServices appServices, Window owner,
         Action dockRefreshAction, Action<DockPositioningMode> positioningModeChangeAction, int? page = null)
     {
+        if (owner is MainWindow dock) dock.WakeDiscreetMode();
         // Only one settings window at a time: focus the existing one.
         if (_instance != null)
         {

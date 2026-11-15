@@ -38,6 +38,8 @@ public partial class MainWindow : Window
         InitializeComponent();
         SetupDragReorder();
         SetupFileDrop();
+        DockBar.RenderTransform = _discreetScale;
+        _discreetPollTimer.Tick += OnDiscreetPollTick;
         PositionChanged += OnDockPositionChanged;
         _positionPersistTimer.Tick += (_, _) =>
         {
@@ -91,6 +93,7 @@ public partial class MainWindow : Window
         }
 
         _dockBehavior = new DockWindowBehavior(handle.Handle, UpdateStatus);
+        _discreetWindowHandle = handle.Handle;
         _dockBehavior.Apply();
 
         // Initialize the dock ViewModel (loads items, starts indicator watcher).
@@ -124,6 +127,7 @@ public partial class MainWindow : Window
     private void ApplyDockPosition(bool force = false)
     {
         if (_appServices == null) return;
+        ConfigureDiscreetMode();
         if (!force && _appServices.PositioningService.IsDynamicPositioning()) return;
         // Anchors and the saved position refer to the visible bar, which sits
         // inside the window's zoom headroom.
@@ -487,6 +491,7 @@ public partial class MainWindow : Window
 
     protected override void OnClosed(EventArgs e)
     {
+        _discreetPollTimer.Stop();
         _dockContextMenu?.Close();
         _contextMenuDismissal?.Dispose();
         _contextMenuDismissal = null;

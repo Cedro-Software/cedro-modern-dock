@@ -83,6 +83,30 @@ public class DockAppearanceService
 
     public bool GetVerticalDock() => GetDock().VerticalDock;
 
+    public bool GetDiscreetMode() => GetDock().DiscreetMode;
+
+    public void SetDiscreetMode(bool value)
+    {
+        GetDock().DiscreetMode = value;
+        _dockService.SaveChanges();
+    }
+
+    public int GetDiscreetModeDelay() => Math.Clamp(GetDock().DiscreetModeDelay, 0, 1000);
+
+    public void SetDiscreetModeDelay(int value)
+    {
+        GetDock().DiscreetModeDelay = Math.Clamp(value, 0, 1000);
+        _dockService.SaveChanges();
+    }
+
+    public int GetDiscreetModeOpacity() => Math.Clamp(GetDock().DiscreetModeOpacity, 15, 50);
+
+    public void SetDiscreetModeOpacity(int value)
+    {
+        GetDock().DiscreetModeOpacity = Math.Clamp(value, 15, 50);
+        _dockService.SaveChanges();
+    }
+
     public void SetVerticalDock(bool value)
     {
         GetDock().VerticalDock = value;

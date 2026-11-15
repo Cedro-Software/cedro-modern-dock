@@ -269,6 +269,28 @@ public partial class SettingsViewModel : ViewModelBase
         set => SetProperty(ref _isVerticalDock, value);
     }
 
+    private bool _isDiscreetMode;
+    public bool IsDiscreetMode { get => _isDiscreetMode; set => SetProperty(ref _isDiscreetMode, value); }
+
+    private int _discreetModeDelay = 300;
+    public int DiscreetModeDelay
+    {
+        get => _discreetModeDelay;
+        set => SetProperty(ref _discreetModeDelay, Math.Clamp(value, 0, 1000));
+    }
+
+    private int _discreetModeOpacity = 15;
+    public int DiscreetModeOpacity
+    {
+        get => _discreetModeOpacity;
+        set => SetProperty(ref _discreetModeOpacity, Math.Clamp(value, 15, 50));
+    }
+
+    public string DiscreetModeText => L("settings.general.discreetMode", "Discreet mode");
+    public string DiscreetModeHelper => L("settings.general.discreetMode.helper", "Dim and slightly shrink the dock when it is not in use.");
+    public string DiscreetModeDelayTitle => L("settings.general.discreetMode.delay", "Idle delay");
+    public string DiscreetModeOpacityTitle => L("settings.general.discreetMode.opacity", "Idle opacity");
+
     public SettingsViewModel(AppServices appServices, Action dockRefreshAction,
         Action<DockPositioningMode> positioningModeChangeAction)
     {
@@ -308,6 +330,9 @@ public partial class SettingsViewModel : ViewModelBase
         IsAutoStartEnabled = Infrastructure.Windows.Adapters.AutoStartHelper.IsAutoStartEnabled();
         ShowUnpinnedRunningApps = app.GetShowUnpinnedRunningApps();
         IsVerticalDock = app.GetVerticalDock();
+        IsDiscreetMode = app.GetDiscreetMode();
+        DiscreetModeDelay = app.GetDiscreetModeDelay();
+        DiscreetModeOpacity = app.GetDiscreetModeOpacity();
         IconsLocked = _appServices.DockService.GetIconsLocked();
         _appServices.ThemeService.ThemesChanged += OnThemesChanged;
         RefreshThemes();
@@ -335,6 +360,9 @@ public partial class SettingsViewModel : ViewModelBase
             case nameof(IsAutoStartEnabled): OnAutoStartChanged(); break;
             case nameof(ShowUnpinnedRunningApps): OnShowUnpinnedRunningAppsChanged(); break;
             case nameof(IsVerticalDock): OnVerticalDockChanged(); break;
+            case nameof(IsDiscreetMode): _appServices.AppearanceService.SetDiscreetMode(IsDiscreetMode); _dockRefreshAction(); break;
+            case nameof(DiscreetModeDelay): _appServices.AppearanceService.SetDiscreetModeDelay(DiscreetModeDelay); _dockRefreshAction(); break;
+            case nameof(DiscreetModeOpacity): _appServices.AppearanceService.SetDiscreetModeOpacity(DiscreetModeOpacity); _dockRefreshAction(); break;
             case nameof(IsStaticMode): OnPositioningModeChanged(); break;
             case nameof(VerticalAnchor): OnVerticalAnchorChanged(); break;
             case nameof(HorizontalAnchor): OnHorizontalAnchorChanged(); break;
