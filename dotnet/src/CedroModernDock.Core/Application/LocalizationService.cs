@@ -37,6 +37,14 @@ public class LocalizationService
         NotifyListeners();
     }
 
+    /// <summary>
+    /// Like <see cref="Text"/>, but returns <paramref name="fallback"/> when the
+    /// key is missing from the active language bundle (keys added after the
+    /// original translations were made).
+    /// </summary>
+    public string TextOr(string key, string fallback)
+        => _bundle.TryGetValue(key, out var value) ? value : fallback;
+
     public string Text(string key, params object[] arguments)
     {
         string pattern = _bundle.TryGetValue(key, out var value) ? value : key;
@@ -54,6 +62,9 @@ public class LocalizationService
 
         if (item is DockSettingsItemModel)
             return Text("dockItem.settings");
+
+        if (item is DockSeparatorItemModel)
+            return TextOr("dockItem.separator", "Separator");
 
         if (item is DockWindowsModuleItemModel windowsModuleItem)
         {

@@ -36,6 +36,8 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
+        SetupDragReorder();
+        SetupFileDrop();
         PositionChanged += OnDockPositionChanged;
         _positionPersistTimer.Tick += (_, _) =>
         {
@@ -271,9 +273,10 @@ public partial class MainWindow : Window
             _previewPopup.CancelHide();
             return;
         }
+        var dockVm = (MainWindowViewModel)DataContext!;
         _previewPopup.ShowFor(windows, label,
-            appearance.GetDockColorRGB(), appearance.GetDockBorderRounding(),
-            appearance.GetDockTransparencyPercentage() / 100.0, button, DockBar,
+            dockVm.PreviewColorRgb, dockVm.BorderRounding,
+            dockVm.PreviewOpacity, button, DockBar,
             verticalDock: _appServices.AppearanceService.GetVerticalDock(),
             horizontalAnchor: _appServices.PositioningService.GetHorizontalAnchor());
     }
@@ -391,9 +394,10 @@ public partial class MainWindow : Window
         if (anchor == null) return;
         _previewPopup.CancelHide();
         var appearance = _appServices.AppearanceService;
+        var dockVm = (MainWindowViewModel)DataContext!;
         _previewPopup.ShowFor(windows, label,
-            appearance.GetDockColorRGB(), appearance.GetDockBorderRounding(),
-            appearance.GetDockTransparencyPercentage() / 100.0, anchor, DockBar,
+            dockVm.PreviewColorRgb, dockVm.BorderRounding,
+            dockVm.PreviewOpacity, anchor, DockBar,
             verticalDock: _appServices.AppearanceService.GetVerticalDock(),
             horizontalAnchor: _appServices.PositioningService.GetHorizontalAnchor());
     }
@@ -407,6 +411,9 @@ public partial class MainWindow : Window
         if (!e.Pointer.IsPrimary)
             return;
         if (e.Source is Visual source && source.FindAncestorOfType<Button>() != null)
+            return;
+        // Separators are not buttons, but pressing one must not drag the window.
+        if (e.Source is StyledElement { DataContext: DockItemViewModel })
             return;
         // The zoom headroom around the bar is transparent: pressing it must not
         // drag the dock.
@@ -448,14 +455,15 @@ public partial class MainWindow : Window
     }
 
     /// <summary>Opens the settings window. Port of App.java openSettingsWindow().</summary>
-    private void OpenSettings(MainWindowViewModel vm)
+    private void OpenSettings(MainWindowViewModel vm, int? page = null)
     {
         if (_appServices == null) return;
         SettingsWindow.Open(
             _appServices,
             this,
             dockRefreshAction: vm.UpdateDockUI,
-            positioningModeChangeAction: mode => HandlePositioningModeChange(mode)
+            positioningModeChangeAction: mode => HandlePositioningModeChange(mode),
+            page: page
         );
     }
 

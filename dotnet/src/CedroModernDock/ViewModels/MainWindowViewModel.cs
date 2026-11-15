@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using CedroModernDock.Core.Application;
 using CedroModernDock.Core.Models;
 using CedroModernDock.Infrastructure.Windows.Native;
@@ -74,8 +75,8 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Separator is only shown between pinned items and displayed unpinned running apps.</summary>
     public bool ShowVerticalSeparator => HasRunningApps && IsVerticalDock;
 
-    /// <summary>Hover zoom factor of dock items; must match scale(1.3) in MainWindow.axaml.</summary>
-    public const double HoverZoomScale = 1.3;
+    /// <summary>Look shared by all dock items (zoom, indicator, separators, tooltips).</summary>
+    public DockVisualStyle Style { get; } = new();
 
     public int IconsSize
     {
@@ -83,11 +84,14 @@ public partial class MainWindowViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _iconsSize, value))
-            {
-                OnPropertyChanged(nameof(ZoomHeadroom));
-                OnPropertyChanged(nameof(ZoomHeadroomThickness));
-            }
+                RaiseHeadroom();
         }
+    }
+
+    private void RaiseHeadroom()
+    {
+        OnPropertyChanged(nameof(ZoomHeadroom));
+        OnPropertyChanged(nameof(ZoomHeadroomThickness));
     }
 
     /// <summary>
@@ -96,8 +100,15 @@ public partial class MainWindowViewModel : ViewModelBase
     /// to its content). Sized from the icon's growth per side (the button's own
     /// padding absorbs the rounding), so the zoom never depends on the dock padding.
     /// </summary>
-    public int ZoomHeadroom => (int)Math.Round(IconsSize * (HoverZoomScale - 1) / 2);
+    public int ZoomHeadroom => (int)Math.Round(IconsSize * (Style.HoverZoom - 1) / 2);
     public Thickness ZoomHeadroomThickness => new Thickness(ZoomHeadroom);
+
+    /// <summary>Accent color of the dashed edit-mode outline (icons unlocked).</summary>
+    public IBrush AccentBrush { get; } = new SolidColorBrush(Color.FromRgb(0x4C, 0x9A, 0xFF));
+
+    /// <summary>Colors handed to the window-preview popup so it matches the dock.</summary>
+    public string PreviewColorRgb { get; private set; } = "0, 0, 0";
+    public double PreviewOpacity { get; private set; } = 0.3;
     public int Spacing { get => _spacing; set => SetProperty(ref _spacing, value); }
     public int BorderRounding
     {
@@ -143,7 +154,14 @@ public partial class MainWindowViewModel : ViewModelBase
         _appServices = appServices;
         LaunchCommand = new RelayCommand(param => ExecuteItem(param));
         _appServices.LocalizationService.AddListener(UpdateDockUI);
+        // Classic separator images, the same assets the dock used before.
+        Style.SetSeparator("classic", Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF), 1,
+            IconLoader.LoadFromAsset("Assets/icons/open-softwares-separator-1.png"),
+            IconLoader.LoadFromAsset("Assets/icons/open-softwares-separator-2.png"));
     }
+
+    /// <summary>Set by the App — quits the application (dock menu "Quit").</summary>
+    public Action? ExitAction { get; set; }
 
     public void Initialize()
     {
@@ -174,18 +192,199 @@ public partial class MainWindowViewModel : ViewModelBase
             if (vm != null)
             {
                 vm.IconSize = _appServices.AppearanceService.GetIconsSize();
+                vm.Style = Style;
                 Items.Add(vm);
             }
         }
+        IconsLocked = _appServices.DockService.GetIconsLocked();
         ApplyAppearance();
         RepositionAction?.Invoke();
         PreviewDismissAction?.Invoke();
     }
-    // --- continued below ---
+
+    // --- Dock editing (context menus, drag reorder) ---
+
+    private bool _iconsLocked = true;
+    /// <summary>When false, pinned icons can be reordered by drag and drop.</summary>
+    public bool IconsLocked
+    {
+        get => _iconsLocked;
+        private set
+        {
+            if (SetProperty(ref _iconsLocked, value))
+                OnPropertyChanged(nameof(IconsUnlocked));
+        }
+    }
+
+    /// <summary>Edit mode: the dock shows a dashed accent outline.</summary>
+    public bool IconsUnlocked => !IconsLocked;
+
+    /// <summary>Returns the translated text, or the fallback when the key is missing.</summary>
+    public string T(string key, string fallback)
+        => _appServices?.LocalizationService.TextOr(key, fallback) ?? fallback;
+
+    public void SetIconsLocked(bool locked)
+    {
+        if (_appServices == null) return;
+        _appServices.DockService.SetIconsLocked(locked);
+        IconsLocked = locked;
+    }
+
+    private int IndexOfModel(DockItemViewModel vm)
+        => _appServices?.DockService.GetItems().IndexOf(vm.Item) ?? -1;
+
+    /// <summary>Inserts a separator after <paramref name="after"/>.</summary>
+    public void AddSeparator(DockItemViewModel after)
+    {
+        int index = IndexOfModel(after);
+        AddSeparatorAt(index >= 0 ? index + 1 : int.MaxValue);
+    }
+
+    /// <summary>Inserts a separator at <paramref name="index"/> (clamped; MaxValue = end).</summary>
+    public void AddSeparatorAt(int index)
+    {
+        if (_appServices == null) return;
+        _appServices.DockService.InsertItem(index, new DockSeparatorItemModel());
+        UpdateDockUI();
+    }
+
+    /// <summary>
+    /// Adds files dropped on the dock at <paramref name="index"/>: folders become
+    /// folder items, .exe files and shortcuts to .exe files become program items.
+    /// Returns the number of items added.
+    /// </summary>
+    public int AddDroppedPaths(IEnumerable<string> paths, int index)
+    {
+        if (_appServices == null) return 0;
+        int added = 0;
+        foreach (var raw in paths)
+        {
+            DockItem? item = null;
+            if (Directory.Exists(raw))
+            {
+                item = CreateFolderItem(raw);
+            }
+            else
+            {
+                var shortcut = ShortcutResolver.Resolve(raw);
+                if (shortcut != null)
+                {
+                    var sel = ProgramSelectionResolver.Resolve(shortcut.ExecutablePath);
+                    _appServices.IconGateway.CacheProgramIcon(sel.ExecutablePath);
+                    // Keep the shortcut's name (e.g. "Visual Studio Code" rather than "Code").
+                    string label = raw.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase)
+                        ? Path.GetFileNameWithoutExtension(raw)
+                        : sel.Label;
+                    item = new DockProgramItemModel(label, sel.ExecutablePath)
+                    {
+                        Arguments = shortcut.Arguments,
+                        WorkingDirectory = shortcut.WorkingDirectory,
+                        LaunchPath = raw.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase)
+                            ? shortcut.ExecutablePath : null
+                    };
+                }
+            }
+            if (item == null) continue;
+            _appServices.DockService.InsertItem(index == int.MaxValue ? index : index + added, item);
+            added++;
+        }
+        if (added > 0) UpdateDockUI();
+        return added;
+    }
+
+    private DockFolderItemModel CreateFolderItem(string path)
+    {
+        var label = Path.GetFileName(Path.TrimEndingDirectorySeparator(path));
+        if (string.IsNullOrWhiteSpace(label))
+            label = path;
+        _appServices!.IconGateway.CacheFolderIcon(path);
+        return new DockFolderItemModel(label, path);
+    }
+
+    public void RemoveItem(DockItemViewModel vm)
+    {
+        if (_appServices == null || !vm.CanRemove) return;
+        int index = IndexOfModel(vm);
+        if (index < 0) return;
+        _appServices.DockService.RemoveItem(index);
+        UpdateDockUI();
+    }
+
+    public void RenameItem(DockItemViewModel vm, string newLabel)
+    {
+        if (_appServices == null || !vm.CanEdit) return;
+        newLabel = newLabel.Trim();
+        if (newLabel.Length == 0) return;
+        vm.Item.Label = newLabel;
+        _appServices.DockService.SaveItemChanges();
+        UpdateDockUI();
+    }
+
+    /// <summary>Changes the target of a program (.exe) or folder item.</summary>
+    public void RetargetItem(DockItemViewModel vm, string newPath)
+    {
+        if (_appServices == null || !vm.CanEdit || string.IsNullOrWhiteSpace(newPath)) return;
+        if (vm.Item is DockProgramItemModel program)
+        {
+            var sel = ProgramSelectionResolver.Resolve(newPath);
+            _appServices.IconGateway.CacheProgramIcon(sel.ExecutablePath);
+            vm.Item.Path = sel.ExecutablePath;
+            program.Arguments = "";
+            program.WorkingDirectory = null;
+            program.LaunchPath = null;
+        }
+        else
+        {
+            vm.Item.Path = newPath;
+        }
+        _appServices.DockService.SaveItemChanges();
+        UpdateDockUI();
+    }
+
+    /// <summary>
+    /// Persists a drag-reorder already applied to <see cref="Items"/>: the item
+    /// moved from <paramref name="fromIndex"/> to final position <paramref name="toIndex"/>.
+    /// </summary>
+    public void CommitMove(int fromIndex, int toIndex)
+    {
+        if (_appServices == null || fromIndex == toIndex) return;
+        // DockModel.MoveItem takes a gap index (0..Count), not a final position.
+        _appServices.DockService.MoveItem(fromIndex, toIndex > fromIndex ? toIndex + 1 : toIndex);
+    }
+
+    public void OpenSettings() => OpenSettingsAction?.Invoke();
+
+    public void AddProgram(string path)
+    {
+        if (_appServices == null) return;
+        var sel = ProgramSelectionResolver.Resolve(path);
+        _appServices.IconGateway.CacheProgramIcon(sel.ExecutablePath);
+        _appServices.DockService.AddItem(new DockProgramItemModel(sel.Label, sel.ExecutablePath));
+        UpdateDockUI();
+    }
+
+    public void AddFolder(string path)
+    {
+        if (_appServices == null) return;
+        _appServices.DockService.AddItem(CreateFolderItem(path));
+        UpdateDockUI();
+    }
+
+    /// <summary>Pins a running-but-unpinned app to the dock.</summary>
+    public void PinRunningApp(string executablePath, string label)
+    {
+        if (_appServices == null) return;
+        _appServices.IconGateway.CacheProgramIcon(executablePath);
+        _appServices.DockService.AddItem(new DockProgramItemModel(label, executablePath));
+        UpdateDockUI();
+    }
 
     private DockItemViewModel? CreateItemViewModel(DockItem item, LocalizationService loc)
     {
         string label = loc.DockItemLabel(item);
+
+        if (item is DockSeparatorItemModel)
+            return new DockItemViewModel(item, label, LaunchCommand);
 
         if (item is DockSettingsItemModel)
         {
@@ -263,12 +462,29 @@ public partial class MainWindowViewModel : ViewModelBase
 
         string colorRgb = appearance.GetDockColorRGB();
         double transparency = appearance.GetDockTransparencyPercentage() / 100.0;
-        byte alpha = (byte)(transparency * 255);
-        var parts = colorRgb.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        byte r = parts.Length > 0 && byte.TryParse(parts[0], out var rv) ? rv : (byte)0;
-        byte g = parts.Length > 1 && byte.TryParse(parts[1], out var gv) ? gv : (byte)0;
-        byte b = parts.Length > 2 && byte.TryParse(parts[2], out var bv) ? bv : (byte)0;
-        DockBackground = new SolidColorBrush(Color.FromArgb(alpha, r, g, b));
+        var color = ParseRgbColor(colorRgb);
+        DockBackground = new SolidColorBrush(Color.FromArgb((byte)(transparency * 255), color.R, color.G, color.B));
+        PreviewColorRgb = colorRgb;
+        PreviewOpacity = transparency;
+
+        Style.IconSize = IconsSize;
+        Style.IsVerticalDock = IsVerticalDock;
+        Style.TooltipPlacement = ResolveTooltipPlacement();
+        RaiseHeadroom();
+    }
+
+    /// <summary>Tooltips open toward the screen center, away from the edge the dock sits on.</summary>
+    private Avalonia.Controls.PlacementMode ResolveTooltipPlacement()
+    {
+        if (_appServices == null) return Avalonia.Controls.PlacementMode.Top;
+        var pos = _appServices.PositioningService;
+        if (IsVerticalDock)
+            return pos.GetHorizontalAnchor() == DockHorizontalAnchor.RIGHT
+                ? Avalonia.Controls.PlacementMode.Left
+                : Avalonia.Controls.PlacementMode.Right;
+        return pos.GetVerticalAnchor() == DockVerticalAnchor.TOP
+            ? Avalonia.Controls.PlacementMode.Bottom
+            : Avalonia.Controls.PlacementMode.Top;
     }
 
     private static Color ParseRgbColor(string rgb)
@@ -405,7 +621,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 string label = System.IO.Path.GetFileNameWithoutExtension(path);
                 var vm = new RunningAppViewModel(path, label)
                 {
-                    IconSize = _appServices.AppearanceService.GetIconsSize()
+                    IconSize = _appServices.AppearanceService.GetIconsSize(),
+                    Style = Style
                 };
                 LoadRunningIcon(vm, win.Handle);
                 _runningAppsByPath[path] = vm;
@@ -499,7 +716,9 @@ public partial class MainWindowViewModel : ViewModelBase
     public void Shutdown()
     {
         if (_appServices != null)
+        {
             _appServices.LocalizationService.RemoveListener(UpdateDockUI);
+        }
         _indicatorCts?.Cancel();
         _indicatorCts?.Dispose();
         _indicatorCts = null;

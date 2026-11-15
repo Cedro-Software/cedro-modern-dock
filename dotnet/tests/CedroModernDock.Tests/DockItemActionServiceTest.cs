@@ -8,6 +8,40 @@ using CedroModernDock.Core.Models;
 public class DockItemActionServiceTest
 {
     [Fact]
+    public void ExecutesTheOriginalShortcutTargetWithItsArgumentsAndWorkingDirectory()
+    {
+        var launcher = new RecordingProgramLauncher();
+        var service = new DockItemActionService(launcher, null!, null!);
+        var item = new DockProgramItemModel("Editor", @"C:\tools\Editor.exe")
+        {
+            LaunchPath = @"C:\tools\Update.exe",
+            Arguments = "--processStart Editor.exe --process-start-args=\"a file.txt\"",
+            WorkingDirectory = @"C:\working folder"
+        };
+
+        Assert.True(service.Execute(item, () => { }));
+
+        Assert.Equal(item.LaunchPath, launcher.Path);
+        Assert.Equal(item.Arguments, launcher.Arguments);
+        Assert.Equal(item.WorkingDirectory, launcher.WorkingDirectory);
+    }
+
+    private sealed class RecordingProgramLauncher : IProgramLauncher
+    {
+        public string? Path { get; private set; }
+        public string? Arguments { get; private set; }
+        public string? WorkingDirectory { get; private set; }
+
+        public bool Launch(string executablePath, string label, string arguments = "", string? workingDirectory = null)
+        {
+            Path = executablePath;
+            Arguments = arguments;
+            WorkingDirectory = workingDirectory;
+            return true;
+        }
+    }
+
+    [Fact]
     public void ExecutesProgramItemsThroughProgramLauncher()
     {
         var capture = new InvocationCapture();
@@ -101,7 +135,7 @@ public class DockItemActionServiceTest
 
     private sealed class ProgramLauncherImpl(Action<string, string> fn) : IProgramLauncher
     {
-        public bool Launch(string executablePath, string label)
+        public bool Launch(string executablePath, string label, string arguments = "", string? workingDirectory = null)
         {
             fn(executablePath, label);
             return true;

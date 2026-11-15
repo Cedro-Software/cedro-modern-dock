@@ -44,6 +44,9 @@ public class RunningAppViewModel : ViewModelBase
         set => SetProperty(ref _iconSize, value);
     }
 
+    /// <summary>Look shared with the pinned items.</summary>
+    public DockVisualStyle Style { get; set; } = new();
+
     public RunningAppViewModel(string executablePath, string label)
     {
         ExecutablePath = executablePath;

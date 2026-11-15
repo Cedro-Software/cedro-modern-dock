@@ -6,5 +6,6 @@ public enum DockItemType
     PROGRAM,
     FOLDER,
     WINDOWS_MODULE,
-    SETTINGS
+    SETTINGS,
+    SEPARATOR
 }

@@ -16,6 +16,7 @@ using System.Text.Json.Serialization;
 [JsonDerivedType(typeof(DockFolderItemModel), "folderItem")]
 [JsonDerivedType(typeof(DockWindowsModuleItemModel), "windowsModuleItem")]
 [JsonDerivedType(typeof(DockSettingsItemModel), "settingsItem")]
+[JsonDerivedType(typeof(DockSeparatorItemModel), "separatorItem")]
 public interface DockItem
 {
     string Label { get; set; }

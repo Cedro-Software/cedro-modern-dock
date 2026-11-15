@@ -6,6 +6,24 @@ using CedroModernDock.Infrastructure.Windows.Adapters;
 /// <summary>Direct port of DefaultProgramLauncherTest.java</summary>
 public class WindowsProgramLauncherTest
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void PreservesShortcutCommandLineAndWorkingDirectoryIncludingForElevation(bool elevated)
+    {
+        const string arguments = "--profile-directory=\"Profile 2\" \"C:\\some folder\\file.txt\" \"\"";
+        var command = WindowsProgramLauncher.ResolveLaunchCommand(@"C:\tools\Editor.exe", arguments, @"C:\working folder");
+
+        var startInfo = WindowsProgramLauncher.CreateStartInfo(command, elevated);
+
+        Assert.Equal(@"C:\tools\Editor.exe", startInfo.FileName);
+        Assert.Equal(arguments, startInfo.Arguments);
+        Assert.Empty(startInfo.ArgumentList);
+        Assert.Equal(@"C:\working folder", startInfo.WorkingDirectory);
+        Assert.Equal(elevated, startInfo.UseShellExecute);
+        Assert.Equal(elevated ? "runas" : "", startInfo.Verb);
+    }
+
     private string _tempDir = null!;
 
     public WindowsProgramLauncherTest()
@@ -27,8 +45,10 @@ public class WindowsProgramLauncherTest
         CleanupTempDir();
     }
 
-    [Fact]
-    public void LaunchesDiscordThroughUpdateExecutable()
+    [Theory]
+    [InlineData("")]
+    [InlineData("--some-option=\"a value\"")]
+    public void LaunchesDiscordThroughUpdateExecutable(string arguments)
     {
         string installDir = Path.Combine(_tempDir, "Discord");
         Directory.CreateDirectory(installDir);
@@ -39,10 +59,15 @@ public class WindowsProgramLauncherTest
         string discordExecutable = Path.Combine(versionDirectory, "Discord.exe");
         File.WriteAllText(discordExecutable, "");
 
-        var command = WindowsProgramLauncher.ResolveLaunchCommand(discordExecutable);
+        var command = WindowsProgramLauncher.ResolveLaunchCommand(discordExecutable, arguments, versionDirectory);
 
         Assert.Equal(updateExecutable, command.ExecutablePath);
-        Assert.Equal(new[] { "--processStart", "Discord.exe" }, command.Arguments);
+        var expected = string.IsNullOrEmpty(arguments)
+            ? new[] { "--processStart", "Discord.exe" }
+            : new[] { "--processStart", "Discord.exe", "--process-start-args", arguments };
+        Assert.Equal(expected, command.Arguments);
+        Assert.Equal(versionDirectory, command.WorkingDirectory);
+        Assert.Empty(command.RawArguments);
         CleanupTempDir();
     }
 
