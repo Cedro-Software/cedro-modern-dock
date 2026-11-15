@@ -97,6 +97,7 @@ public partial class MainWindow
         yield return MakeItem(vm.T("contextMenu.addFolder", "Add a folder..."), Glyphs.AddFolder, () => _ = AddFolderAsync(vm));
         yield return MakeItem(vm.T("contextMenu.addSeparatorHere", "Add a separator here"), Glyphs.Separator, () => vm.AddSeparatorAt(insertIndex));
         yield return new Separator();
+        yield return BuildThemeSubmenu(vm);
         yield return MakeItem(
             vm.IconsLocked
                 ? vm.T("contextMenu.unlockIcons", "Unlock icons (move with the mouse)")
@@ -107,6 +108,37 @@ public partial class MainWindow
         yield return MakeItem(vm.T("contextMenu.settings", "Settings..."), Glyphs.Settings, vm.OpenSettings);
         if (vm.ExitAction != null)
             yield return MakeItem(vm.T("contextMenu.exit", "Quit Cedro Dock"), Glyphs.Exit, vm.ExitAction);
+    }
+
+    /// <summary>"Theme" sub-menu: every installed theme, the active one checked.</summary>
+    private MenuItem BuildThemeSubmenu(MainWindowViewModel vm)
+    {
+        var parent = new MenuItem
+        {
+            Header = vm.T("contextMenu.theme", "Theme"),
+            Icon = Glyphs.MenuIcon(Glyphs.Theme)
+        };
+        var themes = _appServices?.ThemeService;
+        if (themes == null) return parent;
+        string activeId = themes.GetActiveTheme().Id;
+        var children = new List<object>();
+        foreach (var theme in themes.GetThemes())
+        {
+            var entry = new MenuItem
+            {
+                Header = theme.Name,
+                ToggleType = MenuItemToggleType.Radio,
+                IsChecked = theme.Id == activeId,
+                GroupName = "dockTheme"
+            };
+            string id = theme.Id;
+            entry.Click += (_, _) => themes.SetActiveTheme(id);
+            children.Add(entry);
+        }
+        children.Add(new Separator());
+        children.Add(MakeItem(vm.T("contextMenu.manageThemes", "Manage themes..."), Glyphs.Settings, vm.OpenThemesSettings));
+        parent.ItemsSource = children;
+        return parent;
     }
 
     private static MenuItem MakeItem(string header, string glyph, Action action, bool danger = false)

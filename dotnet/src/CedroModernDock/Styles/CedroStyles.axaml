@@ -2,7 +2,8 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
 
     <!-- Shared look of Cedro windows (settings, dialogs) and of the dock's
-         popups (menus, tooltips). -->
+         popups. Menu and tooltip brushes are replaced at runtime by the active
+         dock theme (ThemeRenderer); the values below are the Cedro defaults. -->
     <Styles.Resources>
         <ResourceDictionary>
             <!-- App chrome (settings and dialogs, always dark) -->
@@ -26,7 +27,7 @@
             <SolidColorBrush x:Key="CedroWarningSubtle" Color="#26FFB547"/>
             <SolidColorBrush x:Key="CedroWarning" Color="#FFFFC46B"/>
 
-            <!-- Dock popups -->
+            <!-- Dock popups (themed) -->
             <SolidColorBrush x:Key="CedroMenuBackground" Color="#FF1C1C20"/>
             <SolidColorBrush x:Key="CedroMenuBorder" Color="#24FFFFFF"/>
             <SolidColorBrush x:Key="CedroMenuForeground" Color="#FFF0F0F0"/>
@@ -186,7 +187,7 @@
         <Setter Property="CornerRadius" Value="10"/>
         <Setter Property="Padding" Value="18,16"/>
     </Style>
-    <!-- Disabled settings cards -->
+    <!-- Settings imposed by the active theme -->
     <Style Selector="Border.card:disabled">
         <Setter Property="Opacity" Value="0.45"/>
     </Style>

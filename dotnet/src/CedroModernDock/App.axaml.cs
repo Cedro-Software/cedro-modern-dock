@@ -172,7 +172,8 @@ public partial class App : Application
             ),
             WindowPreviewService: new WindowPreviewService(new Win32WindowQueryGateway()),
             IconGateway: new CachedWindowsIconGateway(),
-            LocalizationService: new LocalizationService(dockService)
+            LocalizationService: new LocalizationService(dockService),
+            ThemeService: new ThemeService(dockService, new FileSystemThemeRepository())
         );
     }
 

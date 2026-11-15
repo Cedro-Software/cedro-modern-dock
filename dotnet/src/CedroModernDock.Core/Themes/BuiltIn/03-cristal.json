@@ -1,0 +1,55 @@
+{
+  "schemaVersion": 1,
+  "id": "cristal",
+  "name": "Cristal",
+  "author": "Cedro",
+  "version": "1.0.0",
+  "description": "Étagère de verre lumineuse avec un reflet net sur le dessus.",
+  "dock": {
+    "gradient": [
+      "#99FFFFFF",
+      "#59E8EEF5",
+      "#40D0DAE6"
+    ],
+    "gradientAngle": 90,
+    "cornerRadius": 6,
+    "padding": 8,
+    "borderColor": "#80FFFFFF",
+    "borderThickness": 1,
+    "highlight": "#E6FFFFFF",
+    "shadow": {
+      "color": "#33000000",
+      "blur": 16,
+      "offsetY": 4
+    }
+  },
+  "icons": {
+    "hoverZoom": 1.5
+  },
+  "indicator": {
+    "style": "glow",
+    "color": "#FF5AC8FA",
+    "size": 6
+  },
+  "separator": {
+    "style": "classic",
+    "color": "#66FFFFFF",
+    "thickness": 1
+  },
+  "tooltip": {
+    "background": "#E6FFFFFF",
+    "foreground": "#FF202020",
+    "borderColor": "#40FFFFFF",
+    "cornerRadius": 6
+  },
+  "menu": {
+    "background": "#F2FAFBFD",
+    "foreground": "#FF202020",
+    "secondaryForeground": "#FF707780",
+    "hover": "#FFE3EEF8",
+    "accent": "#FF2E8BFF",
+    "borderColor": "#26000000",
+    "danger": "#FFE53935",
+    "cornerRadius": 6
+  }
+}

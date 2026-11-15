@@ -83,6 +83,114 @@ public partial class SettingsWindow : Window
 
     private void OnRemove(object? sender, RoutedEventArgs e) => Vm?.RemoveSelected();
     private void OnAddSeparator(object? sender, RoutedEventArgs e) => Vm?.AddSeparator();
+    private void OnGoToThemes(object? sender, RoutedEventArgs e) => Vm.SelectedPageIndex = SettingsViewModel.PageThemes;
+
+    // --- Themes ---
+
+    private string Text(string key, string fallback)
+        => _appServices?.LocalizationService.TextOr(key, fallback) ?? fallback;
+
+    private void OnThemeCardPressed(object? sender, PointerPressedEventArgs e)
+    {
+        // Buttons inside the card (export, delete) handle their own clicks.
+        if (e.Source is Visual v && v.FindAncestorOfType<Button>() != null) return;
+        if (!e.GetCurrentPoint(this).Properties.IsLeftButtonPressed) return;
+        if (sender is Control { DataContext: ThemeCardViewModel card })
+            Vm.ApplyTheme(card.Id);
+    }
+
+    private async void OnImportTheme(object? sender, RoutedEventArgs e)
+    {
+        var files = await StorageProvider.OpenFilePickerAsync(new Avalonia.Platform.Storage.FilePickerOpenOptions
+        {
+            Title = Text("settings.themes.import.title", "Import a theme"),
+            AllowMultiple = false,
+            FileTypeFilter = new[]
+            {
+                new Avalonia.Platform.Storage.FilePickerFileType(Text("settings.themes.import.filter", "Cedro theme"))
+                {
+                    Patterns = new[] { "*.cedrotheme", "*.zip", "theme.json" }
+                }
+            }
+        });
+        if (files.Count == 0 || files[0].TryGetLocalPath() is not { } path) return;
+        string? error = Vm.InstallTheme(path);
+        if (error != null)
+            await Dialogs.MessageAsync(this, Text("settings.themes.import.failed", "This theme could not be installed"),
+                error, Text("dialog.ok", "OK"));
+    }
+
+    private async void OnCreateTheme(object? sender, RoutedEventArgs e)
+    {
+        string? name = await Dialogs.PromptAsync(this,
+            Text("settings.themes.create.title", "New theme"),
+            Text("settings.themes.create.message", "Name of the theme. It is created from the current look of the dock, in the themes folder, ready to edit."),
+            Text("settings.themes.create.default", "My theme"),
+            Text("settings.themes.create.ok", "Create"),
+            Text("dialog.cancel", "Cancel"));
+        if (string.IsNullOrWhiteSpace(name)) return;
+        string folder = Vm.CreateThemeFromCurrent(name.Trim());
+        OpenFolder(folder);
+    }
+
+    private void OnOpenThemesFolder(object? sender, RoutedEventArgs e)
+    {
+        try
+        {
+            Directory.CreateDirectory(Vm.ThemesFolder);
+            _appServices?.ThemeService.EnsureAuthorGuide();
+        }
+        catch { /* the folder is only a convenience */ }
+        OpenFolder(Vm.ThemesFolder);
+    }
+
+    private void OnReloadThemes(object? sender, RoutedEventArgs e) => Vm.ReloadThemes();
+
+    private async void OnExportTheme(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: ThemeCardViewModel card }) return;
+        var file = await StorageProvider.SaveFilePickerAsync(new Avalonia.Platform.Storage.FilePickerSaveOptions
+        {
+            Title = Text("settings.themes.export.title", "Export the theme"),
+            SuggestedFileName = card.Id + ".cedrotheme",
+            DefaultExtension = "cedrotheme",
+            FileTypeChoices = new[]
+            {
+                new Avalonia.Platform.Storage.FilePickerFileType(Text("settings.themes.import.filter", "Cedro theme"))
+                {
+                    Patterns = new[] { "*.cedrotheme" }
+                }
+            }
+        });
+        if (file?.TryGetLocalPath() is not { } path) return;
+        string? error = Vm.ExportTheme(card.Id, path);
+        if (error != null)
+            await Dialogs.MessageAsync(this, Text("settings.themes.export.failed", "Export failed"), error, Text("dialog.ok", "OK"));
+    }
+
+    private async void OnDeleteTheme(object? sender, RoutedEventArgs e)
+    {
+        if (sender is not Control { DataContext: ThemeCardViewModel card }) return;
+        bool confirmed = await Dialogs.ConfirmAsync(this,
+            string.Format(Text("settings.themes.delete.title", "Delete \"{0}\"?"), card.Name),
+            Text("settings.themes.delete.message", "The theme folder is removed from your computer. If it is the active theme, the dock goes back to the Cedro theme."),
+            Text("settings.themes.delete", "Delete"),
+            Text("dialog.cancel", "Cancel"),
+            danger: true);
+        if (confirmed) Vm.DeleteTheme(card.Id);
+    }
+
+    private static void OpenFolder(string folder)
+    {
+        try
+        {
+            System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo("explorer.exe", $"\"{folder}\"")
+            {
+                UseShellExecute = true
+            });
+        }
+        catch { /* best-effort */ }
+    }
     private void OnMoveUp(object? sender, RoutedEventArgs e) => Vm?.MoveItemUp();
     private void OnMoveDown(object? sender, RoutedEventArgs e) => Vm?.MoveItemDown();
 

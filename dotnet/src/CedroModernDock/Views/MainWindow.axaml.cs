@@ -97,6 +97,7 @@ public partial class MainWindow : Window
         if (DataContext is MainWindowViewModel vm)
         {
             vm.OpenSettingsAction = () => OpenSettings(vm);
+            vm.OpenThemesSettingsAction = () => OpenSettings(vm, SettingsViewModel.PageThemes);
             vm.RepositionAction = () => ApplyDockPosition();
             vm.PreviewDismissAction = HidePreview;
             vm.Initialize();

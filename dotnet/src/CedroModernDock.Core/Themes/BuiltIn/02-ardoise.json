@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "ardoise",
+  "name": "Ardoise",
+  "author": "Cedro",
+  "version": "1.0.0",
+  "description": "Verre fumé sombre et doux, l'équivalent nuit du style macOS.",
+  "dock": {
+    "background": "#B01E1E20",
+    "cornerRadius": 20,
+    "padding": 10,
+    "borderColor": "#33FFFFFF",
+    "borderThickness": 1,
+    "highlight": "#26FFFFFF",
+    "shadow": {
+      "color": "#66000000",
+      "blur": 28,
+      "offsetY": 8
+    }
+  },
+  "icons": {
+    "hoverZoom": 1.45
+  },
+  "indicator": {
+    "style": "dot",
+    "color": "#E6FFFFFF",
+    "size": 4
+  },
+  "separator": {
+    "style": "line",
+    "color": "#33FFFFFF",
+    "thickness": 1
+  },
+  "tooltip": {
+    "background": "#F02A2A2C",
+    "foreground": "#FFF2F2F7",
+    "borderColor": "#33FFFFFF",
+    "cornerRadius": 8
+  },
+  "menu": {
+    "background": "#F52A2A2C",
+    "foreground": "#FFF2F2F7",
+    "secondaryForeground": "#FF98989D",
+    "hover": "#FF3A3A3C",
+    "accent": "#FF0A84FF",
+    "borderColor": "#33FFFFFF",
+    "danger": "#FFFF453A",
+    "cornerRadius": 10
+  }
+}

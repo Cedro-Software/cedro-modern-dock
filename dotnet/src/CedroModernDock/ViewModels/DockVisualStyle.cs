@@ -8,10 +8,10 @@ using Avalonia.Media.Transformation;
 namespace CedroModernDock.ViewModels;
 
 /// <summary>
-/// Look shared by every dock item (hover zoom, running
+/// Theme-derived look shared by every dock item (hover zoom, running
 /// indicator, separators, tooltip placement). One instance is owned by the
-/// dock and referenced by all item view models, so a change updates the
-/// items in place without rebuilding them.
+/// dock and referenced by all item view models, so switching theme updates
+/// the items in place without rebuilding them.
 /// </summary>
 public sealed class DockVisualStyle : ViewModelBase
 {

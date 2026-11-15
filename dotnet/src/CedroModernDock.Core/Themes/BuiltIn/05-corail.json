@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "corail",
+  "name": "Corail",
+  "author": "Cedro",
+  "version": "1.0.0",
+  "description": "Plat et opaque, gris anthracite relevé d'un accent corail.",
+  "dock": {
+    "background": "#FF2D2D2D",
+    "opacity": 1.0,
+    "cornerRadius": 2,
+    "padding": 6,
+    "borderColor": "#FF3A3A3A",
+    "borderThickness": 1,
+    "shadow": {
+      "color": "#4D000000",
+      "blur": 8,
+      "offsetY": 2
+    }
+  },
+  "icons": {
+    "hoverZoom": 1.15
+  },
+  "indicator": {
+    "style": "line",
+    "color": "#FFF0544C",
+    "size": 3
+  },
+  "separator": {
+    "style": "space",
+    "color": "#00000000",
+    "thickness": 1
+  },
+  "tooltip": {
+    "background": "#FF3A3A3A",
+    "foreground": "#FFEDEDED",
+    "borderColor": "#FFF0544C",
+    "cornerRadius": 2
+  },
+  "menu": {
+    "background": "#FF2D2D2D",
+    "foreground": "#FFEDEDED",
+    "secondaryForeground": "#FF9A9A9A",
+    "hover": "#FF3D3D3D",
+    "accent": "#FFF0544C",
+    "borderColor": "#FF404040",
+    "danger": "#FFFF6B6B",
+    "cornerRadius": 2
+  }
+}

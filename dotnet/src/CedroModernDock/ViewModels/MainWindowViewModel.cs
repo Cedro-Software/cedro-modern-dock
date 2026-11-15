@@ -75,7 +75,7 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Separator is only shown between pinned items and displayed unpinned running apps.</summary>
     public bool ShowVerticalSeparator => HasRunningApps && IsVerticalDock;
 
-    /// <summary>Look shared by all dock items (zoom, indicator, separators, tooltips).</summary>
+    /// <summary>Theme-driven look shared by all dock items (zoom, indicator, separators, tooltips).</summary>
     public DockVisualStyle Style { get; } = new();
 
     public int IconsSize
@@ -88,6 +88,8 @@ public partial class MainWindowViewModel : ViewModelBase
         }
     }
 
+    private double _shadowExtent;
+
     private void RaiseHeadroom()
     {
         OnPropertyChanged(nameof(ZoomHeadroom));
@@ -99,12 +101,50 @@ public partial class MainWindowViewModel : ViewModelBase
     /// past the bar's edge instead of being clipped by the window (which is sized
     /// to its content). Sized from the icon's growth per side (the button's own
     /// padding absorbs the rounding), so the zoom never depends on the dock padding.
+    /// It also leaves room for the theme's drop shadow.
     /// </summary>
-    public int ZoomHeadroom => (int)Math.Round(IconsSize * (Style.HoverZoom - 1) / 2);
+    public int ZoomHeadroom => (int)Math.Max(
+        Math.Round(IconsSize * (Style.HoverZoom - 1) / 2), _shadowExtent);
     public Thickness ZoomHeadroomThickness => new Thickness(ZoomHeadroom);
 
-    /// <summary>Accent color of the dashed edit-mode outline (icons unlocked).</summary>
-    public IBrush AccentBrush { get; } = new SolidColorBrush(Color.FromRgb(0x4C, 0x9A, 0xFF));
+    // --- Theme surface (set by ApplyAppearance) ---
+
+    private IBrush _themeBorderBrush = Brushes.Transparent;
+    public IBrush ThemeBorderBrush { get => _themeBorderBrush; private set => SetProperty(ref _themeBorderBrush, value); }
+
+    private Thickness _themeBorderThickness;
+    public Thickness ThemeBorderThickness { get => _themeBorderThickness; private set => SetProperty(ref _themeBorderThickness, value); }
+
+    private BoxShadows _dockShadow;
+    public BoxShadows DockShadow { get => _dockShadow; private set => SetProperty(ref _dockShadow, value); }
+
+    private IBrush? _dockHighlight;
+    public IBrush? DockHighlight
+    {
+        get => _dockHighlight;
+        private set { if (SetProperty(ref _dockHighlight, value)) OnPropertyChanged(nameof(HasDockHighlight)); }
+    }
+    public bool HasDockHighlight => DockHighlight != null;
+    /// <summary>The highlight hugs the outer edge, just inside the border.</summary>
+    public CornerRadius HighlightCornerRadius => new(Math.Max(0, BorderRounding - ThemeBorderThickness.Left));
+
+    private Bitmap? _dockSkin;
+    public Bitmap? DockSkin
+    {
+        get => _dockSkin;
+        private set { if (SetProperty(ref _dockSkin, value)) OnPropertyChanged(nameof(HasDockSkin)); }
+    }
+    public bool HasDockSkin => DockSkin != null;
+
+    private Thickness _dockSkinSlice;
+    public Thickness DockSkinSlice { get => _dockSkinSlice; private set => SetProperty(ref _dockSkinSlice, value); }
+
+    private double _dockSkinOpacity = 1;
+    public double DockSkinOpacity { get => _dockSkinOpacity; private set => SetProperty(ref _dockSkinOpacity, value); }
+
+    private IBrush _accentBrush = new SolidColorBrush(Color.FromRgb(0x4C, 0x9A, 0xFF));
+    /// <summary>Theme accent, used for the edit-mode outline.</summary>
+    public IBrush AccentBrush { get => _accentBrush; private set => SetProperty(ref _accentBrush, value); }
 
     /// <summary>Colors handed to the window-preview popup so it matches the dock.</summary>
     public string PreviewColorRgb { get; private set; } = "0, 0, 0";
@@ -116,7 +156,10 @@ public partial class MainWindowViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _borderRounding, value))
+            {
                 OnPropertyChanged(nameof(DockCornerRadius));
+                OnPropertyChanged(nameof(HighlightCornerRadius));
+            }
         }
     }
     public CornerRadius DockCornerRadius => new CornerRadius(BorderRounding);
@@ -154,10 +197,15 @@ public partial class MainWindowViewModel : ViewModelBase
         _appServices = appServices;
         LaunchCommand = new RelayCommand(param => ExecuteItem(param));
         _appServices.LocalizationService.AddListener(UpdateDockUI);
-        // Classic separator images, the same assets the dock used before.
-        Style.SetSeparator("classic", Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF), 1,
-            IconLoader.LoadFromAsset("Assets/icons/open-softwares-separator-1.png"),
-            IconLoader.LoadFromAsset("Assets/icons/open-softwares-separator-2.png"));
+        _appServices.ThemeService.ThemesChanged += OnThemesChanged;
+    }
+
+    private void OnThemesChanged()
+    {
+        if (Avalonia.Threading.Dispatcher.UIThread.CheckAccess())
+            UpdateDockUI();
+        else
+            Avalonia.Threading.Dispatcher.UIThread.Post(UpdateDockUI);
     }
 
     /// <summary>Set by the App — quits the application (dock menu "Quit").</summary>
@@ -345,6 +393,11 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public void OpenSettings() => OpenSettingsAction?.Invoke();
 
+    /// <summary>Set by MainWindow — opens the settings window on the Themes page.</summary>
+    public Action? OpenThemesSettingsAction { get; set; }
+
+    public void OpenThemesSettings() => (OpenThemesSettingsAction ?? OpenSettingsAction)?.Invoke();
+
     public void AddProgram(string path)
     {
         if (_appServices == null) return;
@@ -451,16 +504,31 @@ public partial class MainWindowViewModel : ViewModelBase
         foreach (var app in RunningApps)
             app.Icon = IconTinter.Apply(app.OriginalIcon);
 
-        string colorRgb = appearance.GetDockColorRGB();
-        double transparency = appearance.GetDockTransparencyPercentage() / 100.0;
-        var color = ParseRgbColor(colorRgb);
-        DockBackground = new SolidColorBrush(Color.FromArgb((byte)(transparency * 255), color.R, color.G, color.B));
-        PreviewColorRgb = colorRgb;
-        PreviewOpacity = transparency;
+        // Theme: user values fill whatever the active theme leaves out.
+        var theme = _appServices.ThemeService.GetActiveTheme();
+        var surface = ThemeRenderer.BuildSurface(theme, appearance);
+        ThemeRenderer.ApplyItemStyle(theme, Style);
+        ThemeRenderer.ApplyPopupResources(theme);
+
+        BorderRounding = surface.CornerRadius;
+        DockPadding = surface.Padding;
+        DockBackground = surface.Background;
+        ThemeBorderBrush = surface.BorderBrush;
+        ThemeBorderThickness = new Thickness(surface.BorderThickness);
+        OnPropertyChanged(nameof(HighlightCornerRadius));
+        DockHighlight = surface.Highlight;
+        DockShadow = surface.Shadow;
+        DockSkin = surface.Skin;
+        DockSkinSlice = surface.SkinSlice;
+        DockSkinOpacity = surface.SkinOpacity;
+        AccentBrush = new SolidColorBrush(surface.Accent);
+        PreviewColorRgb = $"{surface.BaseColor.R}, {surface.BaseColor.G}, {surface.BaseColor.B}";
+        PreviewOpacity = Math.Clamp(surface.BaseColor.A / 255.0 * surface.Opacity, 0.35, 1.0);
 
         Style.IconSize = IconsSize;
         Style.IsVerticalDock = IsVerticalDock;
         Style.TooltipPlacement = ResolveTooltipPlacement();
+        _shadowExtent = surface.ShadowExtent;
         RaiseHeadroom();
     }
 
@@ -709,6 +777,7 @@ public partial class MainWindowViewModel : ViewModelBase
         if (_appServices != null)
         {
             _appServices.LocalizationService.RemoveListener(UpdateDockUI);
+            _appServices.ThemeService.ThemesChanged -= OnThemesChanged;
         }
         _indicatorCts?.Cancel();
         _indicatorCts?.Dispose();
