@@ -252,8 +252,15 @@ public partial class WindowPreviewPopup : Window
         if (anchor.GetVisualParent() is { } parent && parent.TransformToVisual(dockBar) is { } toBar)
         {
             var rect = anchor.Bounds.TransformToAABB(toBar);
-            double growX = rect.Width * (MainWindowViewModel.HoverZoomScale - 1) / 2;
-            double growY = rect.Height * (MainWindowViewModel.HoverZoomScale - 1) / 2;
+            // Hover zoom of the dock items (shared item style).
+            double zoom = anchor.DataContext switch
+            {
+                DockItemViewModel item => item.Style.HoverZoom,
+                RunningAppViewModel app => app.Style.HoverZoom,
+                _ => 1.3
+            };
+            double growX = rect.Width * (zoom - 1) / 2;
+            double growY = rect.Height * (zoom - 1) / 2;
             clearAbove = Math.Max(0, growY - rect.Top);
             clearBelow = Math.Max(0, rect.Bottom + growY - dockBar.Bounds.Height);
             clearLeft = Math.Max(0, growX - rect.Left);

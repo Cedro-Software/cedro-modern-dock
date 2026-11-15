@@ -51,11 +51,8 @@ public class DockItemViewModel : ViewModelBase
     /// <summary>True for items rendered as a clickable icon button.</summary>
     public bool IsButton => !IsSeparator;
 
-    /// <summary>Set by the dock: drives the separator's orientation.</summary>
-    public bool IsVerticalDock { get; set; }
-
-    public bool ShowHorizontalSeparator => IsSeparator && !IsVerticalDock;
-    public bool ShowVerticalSeparator => IsSeparator && IsVerticalDock;
+    /// <summary>Look shared by all dock items (set by the dock).</summary>
+    public DockVisualStyle Style { get; set; } = new();
 
     /// <summary>Program and folder items can be renamed and retargeted.</summary>
     public bool CanEdit => Item is DockProgramItemModel || Item is DockFolderItemModel;

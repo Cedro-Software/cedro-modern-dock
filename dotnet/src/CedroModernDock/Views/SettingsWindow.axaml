@@ -2,137 +2,202 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:CedroModernDock.ViewModels"
         xmlns:med="using:Avalonia.Media"
+        xmlns:ctl="using:CedroModernDock.Controls"
         x:Class="CedroModernDock.Views.SettingsWindow"
         x:DataType="vm:SettingsViewModel"
         Title="{Binding WindowTitle}"
         Icon="/Assets/icons/cedro/logo_256.png"
-        Width="780" Height="544"
-        CanResize="False"
+        Width="1000" Height="700"
+        MinWidth="860" MinHeight="560"
         WindowStartupLocation="CenterScreen"
-        Background="#1E1E1E"
+        RequestedThemeVariant="Dark"
+        Background="{DynamicResource CedroWindowBackground}"
+        Foreground="{DynamicResource CedroText}"
+        FontSize="13"
         Closed="OnClosed">
 
-    <Window.Resources>
-        <!-- Accent blue for sliders and radio buttons (matches the 7th preset swatch). -->
-        <SolidColorBrush x:Key="SliderThumbBackground" Color="#00508C"/>
-        <SolidColorBrush x:Key="SliderThumbBackgroundPointerOver" Color="#00508C"/>
-        <SolidColorBrush x:Key="SliderThumbBackgroundPressed" Color="#00508C"/>
-        <SolidColorBrush x:Key="SliderTrackValueFill" Color="#00508C"/>
-        <SolidColorBrush x:Key="SliderTrackValueFillPointerOver" Color="#00508C"/>
-        <SolidColorBrush x:Key="SliderTrackValueFillPressed" Color="#00508C"/>
-        <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStroke" Color="#00508C"/>
-        <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFill" Color="#00508C"/>
-        <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokePointerOver" Color="#1E6BA6"/>
-        <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillPointerOver" Color="#1E6BA6"/>
-        <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedStrokePressed" Color="#003A63"/>
-        <SolidColorBrush x:Key="RadioButtonOuterEllipseCheckedFillPressed" Color="#003A63"/>
-        <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeChecked" Color="#00508C"/>
-        <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPointerOver" Color="#1E6BA6"/>
-        <SolidColorBrush x:Key="CheckBoxCheckBackgroundStrokeCheckedPressed" Color="#003A63"/>
-        <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillChecked" Color="#00508C"/>
-        <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPointerOver" Color="#1E6BA6"/>
-        <SolidColorBrush x:Key="CheckBoxCheckBackgroundFillCheckedPressed" Color="#003A63"/>
-        <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundChecked" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPointerOver" Color="#FFFFFF"/>
-        <SolidColorBrush x:Key="CheckBoxCheckGlyphForegroundCheckedPressed" Color="#FFFFFF"/>
-    </Window.Resources>
-
     <Window.Styles>
-        <!-- Single-row, compact tab strip: the Fluent theme wraps headers in a
-             WrapPanel by default, stacking them 2-per-line in this narrow window.
-             A horizontal StackPanel keeps all sections side-by-side. -->
-        <Style Selector="TabControl">
+        <!-- ================= Left navigation (TabControl restyled) ================= -->
+        <Style Selector="TabControl.nav">
+            <Setter Property="Padding" Value="0"/>
             <Setter Property="ItemsPanel">
                 <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" Spacing="2"/>
+                    <StackPanel Orientation="Vertical" Spacing="2"/>
                 </ItemsPanelTemplate>
             </Setter>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Grid ColumnDefinitions="240,*">
+                        <Border Background="{DynamicResource CedroSidebarBackground}"
+                                BorderBrush="{DynamicResource CedroCardBorder}" BorderThickness="0,0,1,0">
+                            <DockPanel Margin="14,20,14,14">
+                                <StackPanel DockPanel.Dock="Top" Orientation="Horizontal" Spacing="11" Margin="8,0,0,26">
+                                    <Image Source="/Assets/icons/cedro/logo_256.png" Width="34" Height="34"
+                                           RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                                    <StackPanel VerticalAlignment="Center" Spacing="1">
+                                        <TextBlock Text="Cedro Modern Dock" FontWeight="SemiBold" FontSize="14"
+                                                   Foreground="{DynamicResource CedroText}"/>
+                                        <TextBlock Text="{TemplateBinding Tag}" FontSize="11"
+                                                   Foreground="{DynamicResource CedroTextTertiary}"/>
+                                    </StackPanel>
+                                </StackPanel>
+                                <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}"/>
+                            </DockPanel>
+                        </Border>
+                        <ContentPresenter Grid.Column="1" Name="PART_SelectedContentHost"
+                                          Content="{TemplateBinding SelectedContent}"
+                                          ContentTemplate="{TemplateBinding SelectedContentTemplate}"/>
+                    </Grid>
+                </ControlTemplate>
+            </Setter>
         </Style>
-        <Style Selector="TabItem">
-            <Setter Property="FontSize" Value="11"/>
-            <Setter Property="Padding" Value="8,4"/>
-            <Setter Property="MinHeight" Value="30"/>
-            <Setter Property="Background" Value="#2D2D2D"/>
-            <Setter Property="Foreground" Value="#CCCCCC"/>
-            <!-- Clicking a tab gives it keyboard focus, which draws a 2px focus
-                 ring (system accent color) around the selected tab. Disable it. -->
+        <Style Selector="TabControl.nav TabItem">
+            <Setter Property="Foreground" Value="{DynamicResource CedroTextSecondary}"/>
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="FontSize" Value="13"/>
+            <Setter Property="Cursor" Value="Hand"/>
             <Setter Property="FocusAdorner" Value="{x:Null}"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="navRoot" Background="{TemplateBinding Background}" CornerRadius="7" Padding="12,9">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Name="navPill" Width="3" Height="16" CornerRadius="2"
+                                    Background="{DynamicResource CedroAccent}" Margin="-12,0,9,0" Opacity="0"/>
+                            <ContentPresenter Grid.Column="1" Name="PART_ContentPresenter"
+                                              Content="{TemplateBinding Header}"
+                                              ContentTemplate="{TemplateBinding HeaderTemplate}"
+                                              Foreground="{TemplateBinding Foreground}"
+                                              VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
         </Style>
-        <Style Selector="TabItem:pointerover /template/ Border#PART_LayoutRoot">
-            <Setter Property="Background" Value="#3A3A3A"/>
+        <Style Selector="TabControl.nav TabItem:pointerover">
+            <Setter Property="Background" Value="{DynamicResource CedroControlBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource CedroText}"/>
         </Style>
-        <Style Selector="TabItem:selected">
-            <Setter Property="Background" Value="#007ACC"/>
-            <Setter Property="Foreground" Value="White"/>
+        <Style Selector="TabControl.nav TabItem:selected">
+            <Setter Property="Background" Value="{DynamicResource CedroControlBackground}"/>
+            <Setter Property="Foreground" Value="{DynamicResource CedroText}"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
         </Style>
-        <!-- The Fluent theme draws a 2px accent-colored pipe under the selected
-             tab (PART_SelectedPipe). The blue selected background is already the
-             highlight, so suppress the pipe. -->
-        <Style Selector="TabItem:selected /template/ Border#PART_SelectedPipe">
-            <Setter Property="IsVisible" Value="False"/>
+        <Style Selector="TabControl.nav TabItem:selected /template/ Border#navPill">
+            <Setter Property="Opacity" Value="1"/>
+        </Style>
+        <Style Selector="Path.navIcon">
+            <Setter Property="Width" Value="16"/>
+            <Setter Property="Height" Value="16"/>
+            <Setter Property="Stretch" Value="None"/>
+            <Setter Property="StrokeThickness" Value="1.5"/>
+            <Setter Property="StrokeLineCap" Value="Round"/>
+            <Setter Property="StrokeJoin" Value="Round"/>
+            <Setter Property="Stroke" Value="{Binding $parent[TabItem].Foreground}"/>
         </Style>
 
-        <!-- Interactive controls in Settings show the pointer cursor on hover. -->
-        <Style Selector="Button">
-            <Setter Property="Cursor" Value="Hand"/>
+        <!-- ================= Page content ================= -->
+        <Style Selector="ScrollViewer.page">
+            <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
         </Style>
-        <Style Selector="CheckBox">
-            <Setter Property="Cursor" Value="Hand"/>
+        <Style Selector="StackPanel.page">
+            <Setter Property="Margin" Value="36,30,36,36"/>
+            <Setter Property="Spacing" Value="12"/>
+            <Setter Property="MaxWidth" Value="880"/>
         </Style>
-        <Style Selector="RadioButton">
-            <Setter Property="Cursor" Value="Hand"/>
+        <Style Selector="ToggleSwitch">
+            <Setter Property="OnContent" Value=""/>
+            <Setter Property="OffContent" Value=""/>
+            <Setter Property="MinWidth" Value="0"/>
+            <Setter Property="VerticalAlignment" Value="Center"/>
         </Style>
         <Style Selector="ComboBox">
-            <Setter Property="Cursor" Value="Hand"/>
-        </Style>
-        <Style Selector="ComboBoxItem">
-            <Setter Property="Cursor" Value="Hand"/>
-        </Style>
-        <Style Selector="Slider">
-            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="CornerRadius" Value="6"/>
         </Style>
 
-        <!-- The Fluent theme uses overlay (auto-hiding) scrollbars by default: the
-             track is transparent and the thumb collapses to a sliver until hovered.
-             Force them always visible so users can see the content is scrollable. -->
-        <Style Selector="ScrollBar">
-            <Setter Property="AllowAutoHide" Value="False"/>
+        <!-- Dock items list rows -->
+        <Style Selector="ListBox#ItemsList ListBoxItem">
+            <Setter Property="Padding" Value="10,7"/>
+            <Setter Property="CornerRadius" Value="6"/>
+            <Setter Property="Margin" Value="4,1"/>
         </Style>
-        <Style Selector="ScrollBar /template/ Rectangle#TrackRect">
-            <Setter Property="Opacity" Value="1"/>
+        <Style Selector="ListBox#ItemsList ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+            <Setter Property="Background" Value="{DynamicResource CedroAccentSubtle}"/>
         </Style>
-        <Style Selector="ScrollBar /template/ Thumb">
-            <Setter Property="RenderTransform" Value="none"/>
+
+        <!-- Color swatches -->
+        <Style Selector="Border.swatch">
+            <Setter Property="Width" Value="30"/>
+            <Setter Property="Height" Value="30"/>
+            <Setter Property="Margin" Value="0,0,8,8"/>
+            <Setter Property="CornerRadius" Value="15"/>
+            <Setter Property="BorderBrush" Value="#40FFFFFF"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="RenderTransform" Value="scale(1)"/>
+            <Setter Property="Transitions">
+                <Transitions>
+                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.12"/>
+                </Transitions>
+            </Setter>
         </Style>
-        <Style Selector="ScrollBar /template/ RepeatButton">
-            <Setter Property="Opacity" Value="1"/>
+        <Style Selector="Border.swatch:pointerover">
+            <Setter Property="BorderBrush" Value="White"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="RenderTransform" Value="scale(1.08)"/>
         </Style>
+
     </Window.Styles>
 
-    <ScrollViewer Padding="20,20,20,30" VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
-                  AllowAutoHide="False">
-        <StackPanel Orientation="Vertical" Spacing="12">
-            <!-- Header -->
-            <TextBlock Text="{Binding PageTitle}" FontSize="22" FontWeight="Bold" Foreground="White"/>
-            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,8">
-                <TextBlock Text="{Binding LanguageLabel}" VerticalAlignment="Center" Foreground="#CCCCCC"/>
-                <ComboBox ItemsSource="{Binding LanguageNames}" SelectedIndex="{Binding SelectedLanguageIndex}"
-                          MinWidth="180" Background="#2D2D2D" Foreground="White"/>
-            </StackPanel>
+    <TabControl Classes="nav" SelectedIndex="{Binding SelectedPageIndex}" Tag="{Binding VersionText}">
 
-            <TabControl Background="Transparent" Padding="0,10,0,10" VerticalContentAlignment="Top">
-                <!-- Tab 1: Icons -->
-                <TabItem Header="{Binding TabIcons}">
-                    <!-- List takes 40% of the available width, actions the rest. -->
-                    <Grid ColumnDefinitions="2*,3*" Margin="8">
-                        <!-- Left: Dock Items list (taller) -->
-                        <StackPanel Orientation="Vertical" Spacing="6" Grid.Column="0">
-                            <TextBlock Text="{Binding ItemsTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <Grid Margin="0,0,0,10">
+        <!-- =============================== 1. Dock items =============================== -->
+        <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal" Spacing="11">
+                    <Path Classes="navIcon" Data="M2.5 9.5 H13.5 A1 1 0 0 1 14.5 10.5 V12.5 A1 1 0 0 1 13.5 13.5 H2.5 A1 1 0 0 1 1.5 12.5 V10.5 A1 1 0 0 1 2.5 9.5 Z M4.5 9.5 V6.5 M8 9.5 V4.5 M11.5 9.5 V6.5"/>
+                    <TextBlock Text="{Binding TabItems}"/>
+                </StackPanel>
+            </TabItem.Header>
+            <ScrollViewer Classes="page">
+                <StackPanel Classes="page">
+                    <TextBlock Classes="pageTitle" Text="{Binding TabItems}"/>
+                    <TextBlock Classes="pageSubtitle" Text="{Binding ItemsSubtitle}" Margin="0,0,0,8"/>
+
+                    <!-- Toolbar -->
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Classes="accent" Click="OnAddProgram" Margin="0,0,8,8">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.AddProgram}"/>
+                                <TextBlock Text="{Binding AddProgramText}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="subtle" Click="OnAddFolder" Margin="0,0,8,8">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.AddFolder}"/>
+                                <TextBlock Text="{Binding AddFolderText}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="subtle" Click="OnAddModule" Margin="0,0,8,8">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.AddModule}"/>
+                                <TextBlock Text="{Binding AddModuleText}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="subtle" Click="OnAddSeparator" Margin="0,0,8,8">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.Separator}"/>
+                                <TextBlock Text="{Binding AddSeparatorText}"/>
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+
+                    <Border Classes="card" Padding="6">
+                        <Grid RowDefinitions="*,Auto">
+                            <Grid>
                                 <ListBox x:Name="ItemsList" ItemsSource="{Binding ItemEntries}" SelectedIndex="{Binding SelectedItemIndex}"
-                                         Background="#2D2D2D" Foreground="White" BorderBrush="#444" BorderThickness="1"
-                                         MinHeight="220" MaxHeight="290"
-                                         Cursor="SizeAll"
+                                         Background="Transparent" BorderThickness="0"
+                                         MinHeight="260" MaxHeight="380"
                                          DragDrop.AllowDrop="True"
                                          DragDrop.DragOver="OnItemsDragOver"
                                          DragDrop.DragLeave="OnItemsDragLeave"
@@ -142,204 +207,371 @@
                                          PointerCaptureLost="OnItemsPointerCaptureLost">
                                     <ListBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:DockItemListEntry">
-                                            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,1">
-                                                <Image Source="/Assets/icons/draggable.png" Width="12" Height="12"
-                                                       Stretch="Uniform" VerticalAlignment="Center" Opacity="0.55"/>
-                                                <Image Source="{Binding Icon}" Width="18" Height="18"
-                                                       Stretch="Uniform" VerticalAlignment="Center"/>
-                                                <TextBlock Text="{Binding Label}" FontSize="12" VerticalAlignment="Center"/>
-                                            </StackPanel>
+                                            <Grid ColumnDefinitions="Auto,Auto,*" Cursor="SizeAll">
+                                                <Path Data="M5.5 4 h.01 M10.5 4 h.01 M5.5 8 h.01 M10.5 8 h.01 M5.5 12 h.01 M10.5 12 h.01"
+                                                      Stroke="{DynamicResource CedroTextTertiary}" StrokeThickness="2"
+                                                      StrokeLineCap="Round" Width="16" Height="16" VerticalAlignment="Center"/>
+                                                <Image Grid.Column="1" Source="{Binding Icon}" Width="26" Height="26" Margin="8,0,12,0"
+                                                       Stretch="Uniform" VerticalAlignment="Center"
+                                                       RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                                                <StackPanel Grid.Column="2" VerticalAlignment="Center" Spacing="1">
+                                                    <TextBlock Text="{Binding Label}" FontSize="13" FontWeight="Medium"/>
+                                                    <TextBlock Text="{Binding Detail}" IsVisible="{Binding HasDetail}" FontSize="11"
+                                                               Foreground="{DynamicResource CedroTextTertiary}"
+                                                               TextTrimming="CharacterEllipsis"/>
+                                                </StackPanel>
+                                            </Grid>
                                         </DataTemplate>
                                     </ListBox.ItemTemplate>
                                 </ListBox>
-                                <!-- Insertion indicator: a 2px accent bar shown while a
-                                     drag hovers over the list, positioned at the gap. -->
+                                <!-- Insertion indicator shown while a drag hovers the list. -->
                                 <Border x:Name="DropIndicator" IsVisible="False" Height="2"
-                                        Background="#007ACC" CornerRadius="1"
+                                        Background="{DynamicResource CedroAccent}" CornerRadius="1"
                                         HorizontalAlignment="Stretch" VerticalAlignment="Top"/>
                             </Grid>
+                            <Border Grid.Row="1" BorderBrush="{DynamicResource CedroCardBorder}" BorderThickness="0,1,0,0"
+                                    Padding="8,10,8,4" Margin="0,6,0,0">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Classes="helper" Text="{Binding ItemsDragHint}" VerticalAlignment="Center" Margin="0,0,12,0"/>
+                                    <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                                        <Button Classes="subtle" Click="OnMoveUp" IsEnabled="{Binding CanMoveUp}" ToolTip.Tip="{Binding MoveUpText}" Padding="8,6">
+                                            <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.ArrowUp}"/>
+                                        </Button>
+                                        <Button Classes="subtle" Click="OnMoveDown" IsEnabled="{Binding CanMoveDown}" ToolTip.Tip="{Binding MoveDownText}" Padding="8,6">
+                                            <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.ArrowDown}"/>
+                                        </Button>
+                                        <Button Classes="danger" Click="OnRemove" IsEnabled="{Binding CanRemove}">
+                                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                                <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.Remove}"/>
+                                                <TextBlock Text="{Binding RemoveText}"/>
+                                            </StackPanel>
+                                        </Button>
+                                    </StackPanel>
+                                </Grid>
+                            </Border>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <!-- =============================== 2. Icons =============================== -->
+        <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal" Spacing="11">
+                    <Path Classes="navIcon" Data="M2.5 2.5 H7 V7 H2.5 Z M9 2.5 H13.5 V7 H9 Z M2.5 9 H7 V13.5 H2.5 Z M9 9 H13.5 V13.5 H9 Z"/>
+                    <TextBlock Text="{Binding TabIconsCustomization}"/>
+                </StackPanel>
+            </TabItem.Header>
+            <ScrollViewer Classes="page">
+                <StackPanel Classes="page">
+                    <TextBlock Classes="pageTitle" Text="{Binding TabIconsCustomization}"/>
+                    <TextBlock Classes="pageSubtitle" Text="{Binding IconsSubtitle}" Margin="0,0,0,8"/>
+
+                    <Border Classes="card">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Spacing="3">
+                                    <TextBlock Classes="cardTitle" Text="{Binding IconSizeTitle}"/>
+                                    <TextBlock Classes="helper" Text="{Binding IconSizeHelper}"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Classes="value" Text="{Binding IconSize, StringFormat='{}{0} px'}"/>
+                            </Grid>
+                            <Slider Minimum="16" Maximum="80" Value="{Binding IconSize}" TickFrequency="1" IsSnapToTickEnabled="True"/>
                         </StackPanel>
-                        <!-- Right: Actions (stacked buttons) -->
-                        <StackPanel Orientation="Vertical" Spacing="8" Grid.Column="1" Margin="16,0,0,0">
-                            <TextBlock Text="{Binding ActionsTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding ActionsHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Button Content="{Binding AddProgramText}" Click="OnAddProgram" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
-                            <Button Content="{Binding AddFolderText}" Click="OnAddFolder" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
-                            <Button Content="{Binding AddModuleText}" Click="OnAddModule" Background="#007ACC" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
-                            <Button Content="{Binding RemoveText}" Click="OnRemove" IsEnabled="{Binding CanRemove}" Background="#D33" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
-                            <Button Content="{Binding MoveUpText}" Click="OnMoveUp" IsEnabled="{Binding CanMoveUp}" Background="#444" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
-                            <Button Content="{Binding MoveDownText}" Click="OnMoveDown" IsEnabled="{Binding CanMoveDown}" Background="#444" Foreground="White" BorderBrush="Transparent" Padding="12,6" HorizontalAlignment="Left"/>
+                    </Border>
+
+                    <Border Classes="card">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Spacing="3">
+                                    <TextBlock Classes="cardTitle" Text="{Binding SpacingTitle}"/>
+                                    <TextBlock Classes="helper" Text="{Binding SpacingHelper}"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Classes="value" Text="{Binding IconSpacing, StringFormat='{}{0} px'}"/>
+                            </Grid>
+                            <Slider Minimum="0" Maximum="20" Value="{Binding IconSpacing}" TickFrequency="1" IsSnapToTickEnabled="True"/>
                         </StackPanel>
-                    </Grid>
-                </TabItem>
-                <!-- Tab 2: Icons Customization -->
-                <TabItem Header="{Binding TabIconsCustomization}">
-                    <StackPanel Orientation="Vertical" Spacing="16" Margin="16,12">
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding IconSizeTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding IconSizeHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Slider Minimum="16" Maximum="80" Value="{Binding IconSize}" Margin="0,8,0,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding SpacingTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding SpacingHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Slider Minimum="0" Maximum="20" Value="{Binding IconSpacing}" Margin="0,8,0,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <CheckBox Content="{Binding TintIconsTitle}" IsChecked="{Binding TintIcons}" Foreground="#CCCCCC"/>
-                            <StackPanel Orientation="Vertical" Spacing="4" IsVisible="{Binding TintIcons}">
-                                <TextBlock Text="{Binding TintColorHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                                <ItemsControl ItemsSource="{Binding PresetColors}" Margin="0,8,0,0">
+                    </Border>
+
+                    <Border Classes="card">
+                        <StackPanel Spacing="10">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Spacing="3">
+                                    <TextBlock Classes="cardTitle" Text="{Binding TintIconsTitle}"/>
+                                    <TextBlock Classes="helper" Text="{Binding TintColorHelper}"/>
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding TintIcons}"/>
+                            </Grid>
+                            <StackPanel Spacing="6" IsVisible="{Binding TintIcons}" Margin="0,4,0,0">
+                                <ItemsControl ItemsSource="{Binding PresetColors}">
                                     <ItemsControl.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <WrapPanel Orientation="Horizontal"/>
-                                        </ItemsPanelTemplate>
+                                        <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
                                     </ItemsControl.ItemsPanel>
                                     <ItemsControl.ItemTemplate>
                                         <DataTemplate x:DataType="med:IBrush">
-                                            <Border Width="32" Height="32" Margin="0,0,8,8" CornerRadius="6"
-                                                    Background="{Binding}" BorderBrush="#666" BorderThickness="1"
-                                                    PointerPressed="OnTintPresetColorPressed">
-                                                <Border.Styles>
-                                                    <Style Selector="Border:pointerover">
-                                                        <Setter Property="BorderBrush" Value="White"/>
-                                                    </Style>
-                                                </Border.Styles>
-                                            </Border>
+                                            <Border Classes="swatch" Background="{Binding}" PointerPressed="OnTintPresetColorPressed"/>
                                         </DataTemplate>
                                     </ItemsControl.ItemTemplate>
                                 </ItemsControl>
-                                <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
-                                    <Border Width="48" Height="32" CornerRadius="6" BorderBrush="#666" BorderThickness="1"
+                                <StackPanel Orientation="Horizontal" Spacing="12">
+                                    <Border Width="44" Height="30" CornerRadius="8" BorderBrush="#40FFFFFF" BorderThickness="1"
                                             Background="{Binding TintColorBrush}"/>
-                                    <Button Content="{Binding CustomColorText}" Click="OnCustomTintColor" Background="#007ACC" Foreground="White"
-                                            BorderBrush="Transparent" Padding="14,6" VerticalAlignment="Center"/>
+                                    <Button Classes="subtle" Content="{Binding CustomColorText}" Click="OnCustomTintColor"/>
                                 </StackPanel>
                             </StackPanel>
                         </StackPanel>
-                    </StackPanel>
-                </TabItem>
-                <!-- more tabs below -->
-                <!-- Tab 3: Dock Customization -->
-                <TabItem Header="{Binding TabDockCustomization}">
-                    <StackPanel Orientation="Vertical" Spacing="16" Margin="16,12">
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding TransparencyTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding TransparencyHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Slider Minimum="0" Maximum="100" Value="{Binding Transparency}" Margin="0,8,0,0"/>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <!-- =============================== 3. Dock appearance =============================== -->
+        <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal" Spacing="11">
+                    <Path Classes="navIcon" Data="M3.5 4.5 H12.5 A2 2 0 0 1 14.5 6.5 V9.5 A2 2 0 0 1 12.5 11.5 H3.5 A2 2 0 0 1 1.5 9.5 V6.5 A2 2 0 0 1 3.5 4.5 Z"/>
+                    <TextBlock Text="{Binding TabDockCustomization}"/>
+                </StackPanel>
+            </TabItem.Header>
+            <ScrollViewer Classes="page">
+                <StackPanel Classes="page">
+                    <TextBlock Classes="pageTitle" Text="{Binding TabDockCustomization}"/>
+                    <TextBlock Classes="pageSubtitle" Text="{Binding AppearanceSubtitle}" Margin="0,0,0,8"/>
+
+
+                    <Border Classes="card">
+                        <StackPanel Spacing="8">
+                            <Grid ColumnDefinitions="*,Auto">
+                                <StackPanel Spacing="3">
+                                    <TextBlock Classes="cardTitle" Text="{Binding TransparencyTitle}"/>
+                                    <TextBlock Classes="helper" Text="{Binding TransparencyHelper}"/>
+                                </StackPanel>
+                                <TextBlock Grid.Column="1" Classes="value" Text="{Binding Transparency, StringFormat='{}{0} %'}"/>
+                            </Grid>
+                            <Slider Minimum="0" Maximum="100" Value="{Binding Transparency}" TickFrequency="1" IsSnapToTickEnabled="True"/>
                         </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding RoundingTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding RoundingHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Slider Minimum="0" Maximum="30" Value="{Binding BorderRounding}" Margin="0,8,0,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding DockPaddingTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding DockPaddingHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <Slider Minimum="0" Maximum="30" Value="{Binding DockPadding}" Margin="0,8,0,0"/>
-                        </StackPanel>
-                        <StackPanel Orientation="Vertical" Spacing="4">
-                            <TextBlock Text="{Binding BgColorTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                            <TextBlock Text="{Binding BgColorHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                            <!-- Quick-pick presets -->
-                            <ItemsControl ItemsSource="{Binding PresetColors}" Margin="0,8,0,0">
+                    </Border>
+
+                    <Grid ColumnDefinitions="*,12,*">
+                        <Border Classes="card">
+                            <StackPanel Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="3">
+                                        <TextBlock Classes="cardTitle" Text="{Binding RoundingTitle}"/>
+                                        <TextBlock Classes="helper" Text="{Binding RoundingHelper}"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Classes="value" Text="{Binding BorderRounding, StringFormat='{}{0} px'}"/>
+                                </Grid>
+                                <Slider Minimum="0" Maximum="30" Value="{Binding BorderRounding}" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                            </StackPanel>
+                        </Border>
+                        <Border Grid.Column="2" Classes="card">
+                            <StackPanel Spacing="8">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <StackPanel Spacing="3">
+                                        <TextBlock Classes="cardTitle" Text="{Binding DockPaddingTitle}"/>
+                                        <TextBlock Classes="helper" Text="{Binding DockPaddingHelper}"/>
+                                    </StackPanel>
+                                    <TextBlock Grid.Column="1" Classes="value" Text="{Binding DockPadding, StringFormat='{}{0} px'}"/>
+                                </Grid>
+                                <Slider Minimum="0" Maximum="30" Value="{Binding DockPadding}" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                            </StackPanel>
+                        </Border>
+                    </Grid>
+
+                    <Border Classes="card">
+                        <StackPanel Spacing="10">
+                            <StackPanel Spacing="3">
+                                <TextBlock Classes="cardTitle" Text="{Binding BgColorTitle}"/>
+                                <TextBlock Classes="helper" Text="{Binding BgColorHelper}"/>
+                            </StackPanel>
+                            <ItemsControl ItemsSource="{Binding PresetColors}">
                                 <ItemsControl.ItemsPanel>
-                                    <ItemsPanelTemplate>
-                                        <WrapPanel Orientation="Horizontal"/>
-                                    </ItemsPanelTemplate>
+                                    <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
                                 </ItemsControl.ItemsPanel>
                                 <ItemsControl.ItemTemplate>
                                     <DataTemplate x:DataType="med:IBrush">
-                                        <Border Width="32" Height="32" Margin="0,0,8,8" CornerRadius="6"
-                                                Background="{Binding}" BorderBrush="#666" BorderThickness="1"
-                                                PointerPressed="OnPresetColorPressed">
-                                            <Border.Styles>
-                                                <Style Selector="Border:pointerover">
-                                                    <Setter Property="BorderBrush" Value="White"/>
-                                                </Style>
-                                            </Border.Styles>
-                                        </Border>
+                                        <Border Classes="swatch" Background="{Binding}" PointerPressed="OnPresetColorPressed"/>
                                     </DataTemplate>
                                 </ItemsControl.ItemTemplate>
                             </ItemsControl>
-                            <!-- Current color preview + custom picker -->
-                            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,4,0,0">
-                                <Border Width="48" Height="32" CornerRadius="6" BorderBrush="#666" BorderThickness="1"
+                            <StackPanel Orientation="Horizontal" Spacing="12">
+                                <Border Width="44" Height="30" CornerRadius="8" BorderBrush="#40FFFFFF" BorderThickness="1"
                                         Background="{Binding DockColorBrush}"/>
-                                    <Button Content="{Binding CustomColorText}" Click="OnCustomColor" Background="#007ACC" Foreground="White"
-                                            BorderBrush="Transparent" Padding="14,6" VerticalAlignment="Center"/>
+                                <Button Classes="subtle" Content="{Binding CustomColorText}" Click="OnCustomColor"/>
                             </StackPanel>
                         </StackPanel>
-                    </StackPanel>
-                </TabItem>
-                <!-- Tab 4: Positioning -->
-                <TabItem Header="{Binding TabDockPositioning}">
-                    <StackPanel Orientation="Vertical" Spacing="12" Margin="16,12">
-                        <TextBlock Text="{Binding PosModeTitle}" FontWeight="SemiBold" Foreground="#CCCCCC"/>
-                        <TextBlock Text="{Binding PosModeHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
-                        <StackPanel Orientation="Horizontal" Spacing="16">
-                            <RadioButton Content="{Binding StaticText}" IsChecked="{Binding IsStaticMode}" Foreground="White"/>
-                            <RadioButton Content="{Binding DynamicText}" IsChecked="{Binding !IsStaticMode}" Foreground="White"/>
-                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
 
-                        <!-- Static-only: alignment + screen spacing -->
-                        <StackPanel Orientation="Vertical" IsVisible="{Binding IsStaticMode}">
-                            <TextBlock Text="{Binding AlignmentTitle}" FontWeight="SemiBold" Foreground="#CCCCCC" Margin="0,20,0,16"/>
-                            <StackPanel Orientation="Horizontal" Spacing="12">
-                                <TextBlock Text="{Binding VerticalText}" VerticalAlignment="Center" Foreground="#CCC"/>
-                                <ComboBox ItemsSource="{Binding VerticalAnchorOptions}" SelectedItem="{Binding SelectedVerticalOption}"
-                                          Background="#2D2D2D" Foreground="White" MinWidth="100">
+
+        <!-- =============================== 4. Position =============================== -->
+        <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal" Spacing="11">
+                    <Path Classes="navIcon" Data="{x:Static ctl:Glyphs.Position}"/>
+                    <TextBlock Text="{Binding TabDockPositioning}"/>
+                </StackPanel>
+            </TabItem.Header>
+            <ScrollViewer Classes="page">
+                <StackPanel Classes="page">
+                    <TextBlock Classes="pageTitle" Text="{Binding TabDockPositioning}"/>
+                    <TextBlock Classes="pageSubtitle" Text="{Binding PositionSubtitle}" Margin="0,0,0,8"/>
+
+                    <Border Classes="card">
+                        <StackPanel Spacing="10">
+                            <StackPanel Spacing="3">
+                                <TextBlock Classes="cardTitle" Text="{Binding PosModeTitle}"/>
+                                <TextBlock Classes="helper" Text="{Binding PosModeHelper}"/>
+                            </StackPanel>
+                            <StackPanel Orientation="Horizontal" Spacing="20">
+                                <RadioButton GroupName="posMode" Content="{Binding StaticText}" IsChecked="{Binding IsStaticMode}"/>
+                                <RadioButton GroupName="posMode" Content="{Binding DynamicText}" IsChecked="{Binding !IsStaticMode}"/>
+                            </StackPanel>
+                        </StackPanel>
+                    </Border>
+
+                    <Border Classes="card" IsVisible="{Binding IsStaticMode}">
+                        <StackPanel Spacing="12">
+                            <TextBlock Classes="cardTitle" Text="{Binding AlignmentTitle}"/>
+                            <Grid ColumnDefinitions="Auto,*,24,Auto,*" RowDefinitions="Auto">
+                                <TextBlock Text="{Binding VerticalText}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                           Foreground="{DynamicResource CedroTextSecondary}"/>
+                                <ComboBox Grid.Column="1" ItemsSource="{Binding VerticalAnchorOptions}" SelectedItem="{Binding SelectedVerticalOption}"
+                                          HorizontalAlignment="Stretch">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:AnchorOption">
-                                            <TextBlock Text="{Binding Label}" Foreground="White"/>
+                                            <TextBlock Text="{Binding Label}"/>
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
-                                <TextBlock Text="{Binding HorizontalText}" VerticalAlignment="Center" Foreground="#CCC"/>
-                                <ComboBox ItemsSource="{Binding HorizontalAnchorOptions}" SelectedItem="{Binding SelectedHorizontalOption}"
-                                          Background="#2D2D2D" Foreground="White" MinWidth="100">
+                                <TextBlock Grid.Column="3" Text="{Binding HorizontalText}" VerticalAlignment="Center" Margin="0,0,10,0"
+                                           Foreground="{DynamicResource CedroTextSecondary}"/>
+                                <ComboBox Grid.Column="4" ItemsSource="{Binding HorizontalAnchorOptions}" SelectedItem="{Binding SelectedHorizontalOption}"
+                                          HorizontalAlignment="Stretch">
                                     <ComboBox.ItemTemplate>
                                         <DataTemplate x:DataType="vm:HorizontalAnchorOption">
-                                            <TextBlock Text="{Binding Label}" Foreground="White"/>
+                                            <TextBlock Text="{Binding Label}"/>
                                         </DataTemplate>
                                     </ComboBox.ItemTemplate>
                                 </ComboBox>
-                            </StackPanel>
-                            <TextBlock Text="{Binding ScreenSpacingTitle}" FontWeight="SemiBold" Foreground="#CCCCCC" Margin="0,40,0,0"/>
-                            <StackPanel Orientation="Vertical" Spacing="6" Margin="0,0,0,80">
-                                <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding TopSpacingLabel}" Width="50" Foreground="#CCC" VerticalAlignment="Center"/><Slider Minimum="0" Maximum="100" Value="{Binding TopSpacing}" Width="224"/></StackPanel>
-                                <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding LeftSpacingLabel}" Width="50" Foreground="#CCC" VerticalAlignment="Center"/><Slider Minimum="0" Maximum="100" Value="{Binding LeftSpacing}" Width="224"/></StackPanel>
-                                <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding RightSpacingLabel}" Width="50" Foreground="#CCC" VerticalAlignment="Center"/><Slider Minimum="0" Maximum="100" Value="{Binding RightSpacing}" Width="224"/></StackPanel>
-                                <StackPanel Orientation="Horizontal" Spacing="8"><TextBlock Text="{Binding BottomSpacingLabel}" Width="50" Foreground="#CCC" VerticalAlignment="Center"/><Slider Minimum="0" Maximum="100" Value="{Binding BottomSpacing}" Width="224"/></StackPanel>
-                            </StackPanel>
+                            </Grid>
                         </StackPanel>
+                    </Border>
 
-                        <!-- Dynamic-only: drag hint -->
-                        <StackPanel Orientation="Vertical" IsVisible="{Binding !IsStaticMode}">
-                            <TextBlock Text="{Binding DynamicPosTitle}" FontWeight="SemiBold" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                            <TextBlock Text="{Binding DynamicPosHelper}" FontSize="11" Foreground="#888888" TextWrapping="Wrap"/>
+                    <Border Classes="card" IsVisible="{Binding IsStaticMode}">
+                        <StackPanel Spacing="10">
+                            <StackPanel Spacing="3">
+                                <TextBlock Classes="cardTitle" Text="{Binding ScreenSpacingTitle}"/>
+                                <TextBlock Classes="helper" Text="{Binding ScreenSpacingHelper}"/>
+                            </StackPanel>
+                            <Grid ColumnDefinitions="Auto,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+                                <TextBlock Grid.Row="0" Text="{Binding TopSpacingLabel}" VerticalAlignment="Center" MinWidth="70" Foreground="{DynamicResource CedroTextSecondary}"/>
+                                <Slider Grid.Row="0" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding TopSpacing}" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                                <TextBlock Grid.Row="0" Grid.Column="2" Classes="value" Text="{Binding TopSpacing, StringFormat='{}{0} px'}"/>
+                                <TextBlock Grid.Row="1" Text="{Binding LeftSpacingLabel}" VerticalAlignment="Center" Foreground="{DynamicResource CedroTextSecondary}"/>
+                                <Slider Grid.Row="1" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding LeftSpacing}" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                                <TextBlock Grid.Row="1" Grid.Column="2" Classes="value" Text="{Binding LeftSpacing, StringFormat='{}{0} px'}"/>
+                                <TextBlock Grid.Row="2" Text="{Binding RightSpacingLabel}" VerticalAlignment="Center" Foreground="{DynamicResource CedroTextSecondary}"/>
+                                <Slider Grid.Row="2" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding RightSpacing}" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                                <TextBlock Grid.Row="2" Grid.Column="2" Classes="value" Text="{Binding RightSpacing, StringFormat='{}{0} px'}"/>
+                                <TextBlock Grid.Row="3" Text="{Binding BottomSpacingLabel}" VerticalAlignment="Center" Foreground="{DynamicResource CedroTextSecondary}"/>
+                                <Slider Grid.Row="3" Grid.Column="1" Minimum="0" Maximum="100" Value="{Binding BottomSpacing}" TickFrequency="1" IsSnapToTickEnabled="True"/>
+                                <TextBlock Grid.Row="3" Grid.Column="2" Classes="value" Text="{Binding BottomSpacing, StringFormat='{}{0} px'}"/>
+                            </Grid>
                         </StackPanel>
-                    </StackPanel>
-                </TabItem>
-                <!-- general tab below -->
-                <!-- Tab 5: General -->
-                <TabItem Header="{Binding TabGeneral}">
-                    <StackPanel Orientation="Vertical" Spacing="8" Margin="16,12">
-                        <TextBlock Text="{Binding OpenSourceText}" Foreground="#CCCCCC" FontWeight="SemiBold" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding StartWithWindowsText}" IsChecked="{Binding IsAutoStartEnabled}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding ShowUnpinnedRunningAppsText}"
-                                  IsChecked="{Binding ShowUnpinnedRunningApps}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <CheckBox Content="{Binding ArrangeVerticalText}"
-                                  IsChecked="{Binding IsVerticalDock}" Foreground="#CCCCCC" Margin="0,8,0,0"/>
-                        <Button Content="{Binding AcknowledgementsText}" Click="OnAcknowledgements"
-                                Background="#007ACC" Foreground="White" BorderBrush="Transparent"
-                                Padding="16,8" HorizontalAlignment="Left" Margin="0,8,0,0"/>
-                        <TextBlock Text="{Binding VersionText}" Foreground="#CCCCCC"/>
-                        <TextBlock Text="{Binding RepoText}" Foreground="#CCCCCC"/>
-                        <TextBlock Text="{Binding ContactText}" Foreground="#CCCCCC"/>
-                    </StackPanel>
-                </TabItem>
-            </TabControl>
-        </StackPanel>
-    </ScrollViewer>
+                    </Border>
+
+                    <Border Classes="infoBar" IsVisible="{Binding !IsStaticMode}">
+                        <StackPanel Spacing="3">
+                            <TextBlock Text="{Binding DynamicPosTitle}" FontWeight="SemiBold"/>
+                            <TextBlock Text="{Binding DynamicPosHelper}" FontSize="12" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <!-- =============================== 5. General =============================== -->
+        <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal" Spacing="11">
+                    <Path Classes="navIcon" Data="{x:Static ctl:Glyphs.Settings}"/>
+                    <TextBlock Text="{Binding TabGeneral}"/>
+                </StackPanel>
+            </TabItem.Header>
+            <ScrollViewer Classes="page">
+                <StackPanel Classes="page">
+                    <TextBlock Classes="pageTitle" Text="{Binding TabGeneral}"/>
+                    <TextBlock Classes="pageSubtitle" Text="{Binding GeneralSubtitle}" Margin="0,0,0,8"/>
+
+                    <Border Classes="card">
+                        <Grid ColumnDefinitions="*,Auto">
+                            <StackPanel Spacing="3" VerticalAlignment="Center">
+                                <TextBlock Classes="cardTitle" Text="{Binding LanguageLabel}"/>
+                                <TextBlock Classes="helper" Text="{Binding LanguageHelper}"/>
+                            </StackPanel>
+                            <ComboBox Grid.Column="1" ItemsSource="{Binding LanguageNames}" SelectedIndex="{Binding SelectedLanguageIndex}"
+                                      MinWidth="200" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
+
+                    <Border Classes="card" Padding="0">
+                        <StackPanel>
+                            <Grid ColumnDefinitions="*,Auto" Margin="18,14">
+                                <StackPanel Spacing="3">
+                                    <TextBlock Classes="cardTitle" Text="{Binding StartWithWindowsText}"/>
+                                    <TextBlock Classes="helper" Text="{Binding StartWithWindowsHelper}"/>
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsAutoStartEnabled}"/>
+                            </Grid>
+                            <Border Height="1" Background="{DynamicResource CedroCardBorder}"/>
+                            <Grid ColumnDefinitions="*,Auto" Margin="18,14">
+                                <StackPanel Spacing="3">
+                                    <TextBlock Classes="cardTitle" Text="{Binding ShowUnpinnedRunningAppsText}"/>
+                                    <TextBlock Classes="helper" Text="{Binding ShowUnpinnedHelper}"/>
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding ShowUnpinnedRunningApps}"/>
+                            </Grid>
+                            <Border Height="1" Background="{DynamicResource CedroCardBorder}"/>
+                            <Grid ColumnDefinitions="*,Auto" Margin="18,14">
+                                <StackPanel Spacing="3">
+                                    <TextBlock Classes="cardTitle" Text="{Binding ArrangeVerticalText}"/>
+                                    <TextBlock Classes="helper" Text="{Binding ArrangeVerticalHelper}"/>
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding IsVerticalDock}"/>
+                            </Grid>
+                            <Border Height="1" Background="{DynamicResource CedroCardBorder}"/>
+                            <Grid ColumnDefinitions="*,Auto" Margin="18,14">
+                                <StackPanel Spacing="3">
+                                    <TextBlock Classes="cardTitle" Text="{Binding LockIconsText}"/>
+                                    <TextBlock Classes="helper" Text="{Binding LockIconsHelper}"/>
+                                </StackPanel>
+                                <ToggleSwitch Grid.Column="1" IsChecked="{Binding IconsLocked}"/>
+                            </Grid>
+                        </StackPanel>
+                    </Border>
+
+                    <TextBlock Classes="sectionLabel" Text="{Binding AboutTitle}"/>
+                    <Border Classes="card">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Image Source="/Assets/icons/cedro/logo_256.png" Width="48" Height="48" Margin="0,0,16,0"
+                                   VerticalAlignment="Top" RenderOptions.BitmapInterpolationMode="HighQuality"/>
+                            <StackPanel Grid.Column="1" Spacing="3">
+                                <TextBlock Text="{Binding OpenSourceText}" FontWeight="SemiBold"/>
+                                <TextBlock Classes="helper" Text="{Binding VersionText}"/>
+                                <SelectableTextBlock Text="{Binding RepoText}" FontSize="12" Foreground="{DynamicResource CedroTextSecondary}"/>
+                                <SelectableTextBlock Text="{Binding ContactText}" FontSize="12" Foreground="{DynamicResource CedroTextSecondary}"/>
+                            </StackPanel>
+                            <Button Grid.Column="2" Classes="subtle" Content="{Binding AcknowledgementsText}" Click="OnAcknowledgements"
+                                    VerticalAlignment="Top"/>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+    </TabControl>
 </Window>

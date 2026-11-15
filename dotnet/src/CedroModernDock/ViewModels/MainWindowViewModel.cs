@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using Avalonia;
 using Avalonia.Media;
+using Avalonia.Media.Imaging;
 using CedroModernDock.Core.Application;
 using CedroModernDock.Core.Models;
 using CedroModernDock.Infrastructure.Windows.Native;
@@ -74,8 +75,8 @@ public partial class MainWindowViewModel : ViewModelBase
     /// <summary>Separator is only shown between pinned items and displayed unpinned running apps.</summary>
     public bool ShowVerticalSeparator => HasRunningApps && IsVerticalDock;
 
-    /// <summary>Hover zoom factor of dock items; must match scale(1.3) in MainWindow.axaml.</summary>
-    public const double HoverZoomScale = 1.3;
+    /// <summary>Look shared by all dock items (zoom, indicator, separators, tooltips).</summary>
+    public DockVisualStyle Style { get; } = new();
 
     public int IconsSize
     {
@@ -83,11 +84,14 @@ public partial class MainWindowViewModel : ViewModelBase
         set
         {
             if (SetProperty(ref _iconsSize, value))
-            {
-                OnPropertyChanged(nameof(ZoomHeadroom));
-                OnPropertyChanged(nameof(ZoomHeadroomThickness));
-            }
+                RaiseHeadroom();
         }
+    }
+
+    private void RaiseHeadroom()
+    {
+        OnPropertyChanged(nameof(ZoomHeadroom));
+        OnPropertyChanged(nameof(ZoomHeadroomThickness));
     }
 
     /// <summary>
@@ -96,8 +100,15 @@ public partial class MainWindowViewModel : ViewModelBase
     /// to its content). Sized from the icon's growth per side (the button's own
     /// padding absorbs the rounding), so the zoom never depends on the dock padding.
     /// </summary>
-    public int ZoomHeadroom => (int)Math.Round(IconsSize * (HoverZoomScale - 1) / 2);
+    public int ZoomHeadroom => (int)Math.Round(IconsSize * (Style.HoverZoom - 1) / 2);
     public Thickness ZoomHeadroomThickness => new Thickness(ZoomHeadroom);
+
+    /// <summary>Accent color of the dashed edit-mode outline (icons unlocked).</summary>
+    public IBrush AccentBrush { get; } = new SolidColorBrush(Color.FromRgb(0x4C, 0x9A, 0xFF));
+
+    /// <summary>Colors handed to the window-preview popup so it matches the dock.</summary>
+    public string PreviewColorRgb { get; private set; } = "0, 0, 0";
+    public double PreviewOpacity { get; private set; } = 0.3;
     public int Spacing { get => _spacing; set => SetProperty(ref _spacing, value); }
     public int BorderRounding
     {
@@ -143,7 +154,14 @@ public partial class MainWindowViewModel : ViewModelBase
         _appServices = appServices;
         LaunchCommand = new RelayCommand(param => ExecuteItem(param));
         _appServices.LocalizationService.AddListener(UpdateDockUI);
+        // Classic separator images, the same assets the dock used before.
+        Style.SetSeparator("classic", Color.FromArgb(0x66, 0xFF, 0xFF, 0xFF), 1,
+            IconLoader.LoadFromAsset("Assets/icons/open-softwares-separator-1.png"),
+            IconLoader.LoadFromAsset("Assets/icons/open-softwares-separator-2.png"));
     }
+
+    /// <summary>Set by the App — quits the application (dock menu "Quit").</summary>
+    public Action? ExitAction { get; set; }
 
     public void Initialize()
     {
@@ -174,6 +192,7 @@ public partial class MainWindowViewModel : ViewModelBase
             if (vm != null)
             {
                 vm.IconSize = _appServices.AppearanceService.GetIconsSize();
+                vm.Style = Style;
                 Items.Add(vm);
             }
         }
@@ -193,19 +212,12 @@ public partial class MainWindowViewModel : ViewModelBase
         private set
         {
             if (SetProperty(ref _iconsLocked, value))
-            {
                 OnPropertyChanged(nameof(IconsUnlocked));
-                OnPropertyChanged(nameof(DockBorderBrush));
-            }
         }
     }
 
+    /// <summary>Edit mode: the dock shows a dashed accent outline.</summary>
     public bool IconsUnlocked => !IconsLocked;
-
-    /// <summary>Thin highlight around the dock while icons are unlocked.</summary>
-    public IBrush DockBorderBrush => IconsLocked
-        ? Brushes.Transparent
-        : new SolidColorBrush(Color.FromArgb(150, 255, 255, 255));
 
     /// <summary>Returns the translated text, or the fallback when the key is missing.</summary>
     public string T(string key, string fallback)
@@ -363,7 +375,7 @@ public partial class MainWindowViewModel : ViewModelBase
         string label = loc.DockItemLabel(item);
 
         if (item is DockSeparatorItemModel)
-            return new DockItemViewModel(item, label, LaunchCommand) { IsVerticalDock = IsVerticalDock };
+            return new DockItemViewModel(item, label, LaunchCommand);
 
         if (item is DockSettingsItemModel)
         {
@@ -441,12 +453,29 @@ public partial class MainWindowViewModel : ViewModelBase
 
         string colorRgb = appearance.GetDockColorRGB();
         double transparency = appearance.GetDockTransparencyPercentage() / 100.0;
-        byte alpha = (byte)(transparency * 255);
-        var parts = colorRgb.Split(',', StringSplitOptions.TrimEntries | StringSplitOptions.RemoveEmptyEntries);
-        byte r = parts.Length > 0 && byte.TryParse(parts[0], out var rv) ? rv : (byte)0;
-        byte g = parts.Length > 1 && byte.TryParse(parts[1], out var gv) ? gv : (byte)0;
-        byte b = parts.Length > 2 && byte.TryParse(parts[2], out var bv) ? bv : (byte)0;
-        DockBackground = new SolidColorBrush(Color.FromArgb(alpha, r, g, b));
+        var color = ParseRgbColor(colorRgb);
+        DockBackground = new SolidColorBrush(Color.FromArgb((byte)(transparency * 255), color.R, color.G, color.B));
+        PreviewColorRgb = colorRgb;
+        PreviewOpacity = transparency;
+
+        Style.IconSize = IconsSize;
+        Style.IsVerticalDock = IsVerticalDock;
+        Style.TooltipPlacement = ResolveTooltipPlacement();
+        RaiseHeadroom();
+    }
+
+    /// <summary>Tooltips open toward the screen center, away from the edge the dock sits on.</summary>
+    private Avalonia.Controls.PlacementMode ResolveTooltipPlacement()
+    {
+        if (_appServices == null) return Avalonia.Controls.PlacementMode.Top;
+        var pos = _appServices.PositioningService;
+        if (IsVerticalDock)
+            return pos.GetHorizontalAnchor() == DockHorizontalAnchor.RIGHT
+                ? Avalonia.Controls.PlacementMode.Left
+                : Avalonia.Controls.PlacementMode.Right;
+        return pos.GetVerticalAnchor() == DockVerticalAnchor.TOP
+            ? Avalonia.Controls.PlacementMode.Bottom
+            : Avalonia.Controls.PlacementMode.Top;
     }
 
     private static Color ParseRgbColor(string rgb)
@@ -583,7 +612,8 @@ public partial class MainWindowViewModel : ViewModelBase
                 string label = System.IO.Path.GetFileNameWithoutExtension(path);
                 var vm = new RunningAppViewModel(path, label)
                 {
-                    IconSize = _appServices.AppearanceService.GetIconsSize()
+                    IconSize = _appServices.AppearanceService.GetIconsSize(),
+                    Style = Style
                 };
                 LoadRunningIcon(vm, win.Handle);
                 _runningAppsByPath[path] = vm;
@@ -677,7 +707,9 @@ public partial class MainWindowViewModel : ViewModelBase
     public void Shutdown()
     {
         if (_appServices != null)
+        {
             _appServices.LocalizationService.RemoveListener(UpdateDockUI);
+        }
         _indicatorCts?.Cancel();
         _indicatorCts?.Dispose();
         _indicatorCts = null;

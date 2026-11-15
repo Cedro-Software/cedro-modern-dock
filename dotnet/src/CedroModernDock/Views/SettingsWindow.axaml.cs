@@ -3,6 +3,7 @@ using Avalonia.Controls;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Media;
+using Avalonia.Platform.Storage;
 using Avalonia.VisualTree;
 using CedroModernDock.Core.Application;
 using CedroModernDock.Core.Models;
@@ -38,17 +39,19 @@ public partial class SettingsWindow : Window
     }
 
     public static void Open(AppServices appServices, Window owner,
-        Action dockRefreshAction, Action<DockPositioningMode> positioningModeChangeAction)
+        Action dockRefreshAction, Action<DockPositioningMode> positioningModeChangeAction, int? page = null)
     {
         // Only one settings window at a time: focus the existing one.
         if (_instance != null)
         {
+            if (page.HasValue) _instance.Vm.SelectedPageIndex = page.Value;
             _instance.WindowState = WindowState.Normal;
             _instance.Activate();
             return;
         }
 
         var vm = new SettingsViewModel(appServices, dockRefreshAction, positioningModeChangeAction);
+        if (page.HasValue) vm.SelectedPageIndex = page.Value;
         var window = new SettingsWindow
         {
             DataContext = vm, _vm = vm,
@@ -79,6 +82,7 @@ public partial class SettingsWindow : Window
     }
 
     private void OnRemove(object? sender, RoutedEventArgs e) => Vm?.RemoveSelected();
+    private void OnAddSeparator(object? sender, RoutedEventArgs e) => Vm?.AddSeparator();
     private void OnMoveUp(object? sender, RoutedEventArgs e) => Vm?.MoveItemUp();
     private void OnMoveDown(object? sender, RoutedEventArgs e) => Vm?.MoveItemDown();
 

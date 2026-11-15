@@ -1,0 +1,317 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+    <!-- Shared look of Cedro windows (settings, dialogs) and of the dock's
+         popups (menus, tooltips). -->
+    <Styles.Resources>
+        <ResourceDictionary>
+            <!-- App chrome (settings and dialogs, always dark) -->
+            <SolidColorBrush x:Key="CedroWindowBackground" Color="#FF1B1B1F"/>
+            <SolidColorBrush x:Key="CedroSidebarBackground" Color="#FF151518"/>
+            <SolidColorBrush x:Key="CedroCardBackground" Color="#FF232328"/>
+            <SolidColorBrush x:Key="CedroCardBackgroundHover" Color="#FF29292F"/>
+            <SolidColorBrush x:Key="CedroCardBorder" Color="#FF2F2F36"/>
+            <SolidColorBrush x:Key="CedroControlBackground" Color="#FF2D2D34"/>
+            <SolidColorBrush x:Key="CedroControlBackgroundHover" Color="#FF37373F"/>
+            <SolidColorBrush x:Key="CedroControlBackgroundPressed" Color="#FF27272D"/>
+            <SolidColorBrush x:Key="CedroText" Color="#FFF2F2F5"/>
+            <SolidColorBrush x:Key="CedroTextSecondary" Color="#FFA3A3AD"/>
+            <SolidColorBrush x:Key="CedroTextTertiary" Color="#FF70707A"/>
+            <SolidColorBrush x:Key="CedroAccent" Color="#FF4C9AFF"/>
+            <SolidColorBrush x:Key="CedroAccentHover" Color="#FF6AACFF"/>
+            <SolidColorBrush x:Key="CedroAccentPressed" Color="#FF3A82E0"/>
+            <SolidColorBrush x:Key="CedroAccentSubtle" Color="#264C9AFF"/>
+            <SolidColorBrush x:Key="CedroDanger" Color="#FFFF6B6B"/>
+            <SolidColorBrush x:Key="CedroDangerSubtle" Color="#26FF6B6B"/>
+            <SolidColorBrush x:Key="CedroWarningSubtle" Color="#26FFB547"/>
+            <SolidColorBrush x:Key="CedroWarning" Color="#FFFFC46B"/>
+
+            <!-- Dock popups -->
+            <SolidColorBrush x:Key="CedroMenuBackground" Color="#FF1C1C20"/>
+            <SolidColorBrush x:Key="CedroMenuBorder" Color="#24FFFFFF"/>
+            <SolidColorBrush x:Key="CedroMenuForeground" Color="#FFF0F0F0"/>
+            <SolidColorBrush x:Key="CedroMenuSecondary" Color="#FF9A9AA2"/>
+            <SolidColorBrush x:Key="CedroMenuHover" Color="#1FFFFFFF"/>
+            <SolidColorBrush x:Key="CedroMenuAccent" Color="#FF4C9AFF"/>
+            <SolidColorBrush x:Key="CedroMenuDanger" Color="#FFFF6B6B"/>
+            <SolidColorBrush x:Key="CedroMenuDangerHover" Color="#26FF6B6B"/>
+            <SolidColorBrush x:Key="CedroMenuSeparator" Color="#1FFFFFFF"/>
+            <CornerRadius x:Key="CedroMenuCornerRadius">10</CornerRadius>
+            <CornerRadius x:Key="CedroMenuItemCornerRadius">6</CornerRadius>
+            <SolidColorBrush x:Key="CedroTooltipBackground" Color="#FF1F1F23"/>
+            <SolidColorBrush x:Key="CedroTooltipForeground" Color="#FFF2F2F2"/>
+            <SolidColorBrush x:Key="CedroTooltipBorder" Color="#26FFFFFF"/>
+            <CornerRadius x:Key="CedroTooltipCornerRadius">7</CornerRadius>
+        </ResourceDictionary>
+    </Styles.Resources>
+
+    <!-- ===================================================================
+         Context menus: rounded, translucent, soft shadow, icon column.
+         The template adds a transparent margin so the shadow is not clipped
+         by the popup; the offsets compensate so the menu opens at the cursor.
+         =================================================================== -->
+    <Style Selector="ContextMenu">
+        <Setter Property="Background" Value="{DynamicResource CedroMenuBackground}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CedroMenuBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CedroMenuCornerRadius}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroMenuForeground}"/>
+        <Setter Property="Padding" Value="5"/>
+        <Setter Property="MinWidth" Value="250"/>
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="HorizontalOffset" Value="-8"/>
+        <Setter Property="VerticalOffset" Value="-6"/>
+        <Setter Property="Template">
+            <ControlTemplate>
+                <!-- Small, light shadow: a large dark blur reads as a dark frame
+                     around the menu over a light wallpaper. -->
+                <Border Name="menuFrame"
+                        Margin="8,6,8,12"
+                        Background="{TemplateBinding Background}"
+                        BorderBrush="{TemplateBinding BorderBrush}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        CornerRadius="{TemplateBinding CornerRadius}"
+                        Padding="{TemplateBinding Padding}"
+                        MinWidth="{TemplateBinding MinWidth}"
+                        BoxShadow="0 3 9 0 #29000000">
+                    <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                        <ItemsPresenter Name="PART_ItemsPresenter"
+                                        ItemsPanel="{TemplateBinding ItemsPanel}"
+                                        KeyboardNavigation.TabNavigation="Continue"
+                                        Grid.IsSharedSizeScope="True"/>
+                    </ScrollViewer>
+                </Border>
+            </ControlTemplate>
+        </Setter>
+    </Style>
+
+    <!-- Popup without per-pixel transparency (set by MenuTransparency):
+         no shadow margin, which would otherwise be drawn as an opaque frame. -->
+    <Style Selector="ContextMenu.opaquePopup">
+        <Setter Property="HorizontalOffset" Value="0"/>
+        <Setter Property="VerticalOffset" Value="0"/>
+    </Style>
+    <Style Selector="ContextMenu.opaquePopup /template/ Border#menuFrame">
+        <Setter Property="Margin" Value="0"/>
+        <Setter Property="BoxShadow" Value="none"/>
+        <Setter Property="CornerRadius" Value="0"/>
+    </Style>
+
+    <Style Selector="ContextMenu MenuItem">
+        <Setter Property="Padding" Value="10,7"/>
+        <Setter Property="Margin" Value="0,1"/>
+        <Setter Property="MinHeight" Value="32"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CedroMenuItemCornerRadius}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroMenuForeground}"/>
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="ContextMenu MenuItem /template/ ContentControl#PART_IconPresenter">
+        <Setter Property="Margin" Value="0,0,10,0"/>
+    </Style>
+    <Style Selector="ContextMenu MenuItem /template/ TextBlock#PART_InputGestureText">
+        <Setter Property="Foreground" Value="{DynamicResource CedroMenuSecondary}"/>
+        <Setter Property="FontSize" Value="12"/>
+    </Style>
+
+    <!-- Destructive entries (remove, close windows) -->
+    <Style Selector="ContextMenu MenuItem.danger">
+        <Setter Property="Foreground" Value="{DynamicResource CedroMenuDanger}"/>
+    </Style>
+    <Style Selector="ContextMenu MenuItem.danger /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource CedroMenuDanger}"/>
+    </Style>
+    <Style Selector="ContextMenu MenuItem.danger:selected /template/ Border#PART_LayoutRoot">
+        <Setter Property="Background" Value="{DynamicResource CedroMenuDangerHover}"/>
+    </Style>
+
+    <!-- Non-interactive title row (item name + subtitle) -->
+    <Style Selector="ContextMenu MenuItem.menuHeader">
+        <Setter Property="IsHitTestVisible" Value="False"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="Padding" Value="10,6,10,6"/>
+        <Setter Property="Cursor" Value="Arrow"/>
+    </Style>
+
+    <!-- Section caption ("Thème", "Fenêtres"...) -->
+    <Style Selector="ContextMenu MenuItem.caption">
+        <Setter Property="IsHitTestVisible" Value="False"/>
+        <Setter Property="Focusable" Value="False"/>
+        <Setter Property="MinHeight" Value="22"/>
+        <Setter Property="Padding" Value="10,6,10,2"/>
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroMenuSecondary}"/>
+    </Style>
+    <Style Selector="ContextMenu MenuItem.caption /template/ ContentPresenter#PART_HeaderPresenter">
+        <Setter Property="Foreground" Value="{DynamicResource CedroMenuSecondary}"/>
+    </Style>
+
+    <Style Selector="ContextMenu Separator, MenuItem Separator">
+        <Setter Property="Background" Value="{DynamicResource CedroMenuSeparator}"/>
+        <Setter Property="Height" Value="1"/>
+        <Setter Property="Margin" Value="8,4"/>
+    </Style>
+
+    <!-- Menu glyphs: stroked 16x16 paths that follow the item's text color -->
+    <Style Selector="Path.menuIcon">
+        <Setter Property="Width" Value="16"/>
+        <Setter Property="Height" Value="16"/>
+        <Setter Property="Stretch" Value="None"/>
+        <Setter Property="StrokeThickness" Value="1.4"/>
+        <Setter Property="StrokeLineCap" Value="Round"/>
+        <Setter Property="StrokeJoin" Value="Round"/>
+    </Style>
+
+    <!-- ===================================================================
+         Tooltips
+         =================================================================== -->
+    <Style Selector="ToolTip">
+        <Setter Property="Background" Value="{DynamicResource CedroTooltipBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroTooltipForeground}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CedroTooltipBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="{DynamicResource CedroTooltipCornerRadius}"/>
+        <Setter Property="Padding" Value="10,5"/>
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="Medium"/>
+    </Style>
+
+    <!-- ===================================================================
+         Settings / dialog building blocks
+         =================================================================== -->
+    <Style Selector="Border.card">
+        <Setter Property="Background" Value="{DynamicResource CedroCardBackground}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CedroCardBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="CornerRadius" Value="10"/>
+        <Setter Property="Padding" Value="18,16"/>
+    </Style>
+    <!-- Disabled settings cards -->
+    <Style Selector="Border.card:disabled">
+        <Setter Property="Opacity" Value="0.45"/>
+    </Style>
+    <Style Selector="Border.infoBar">
+        <Setter Property="Background" Value="{DynamicResource CedroAccentSubtle}"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="14,10"/>
+    </Style>
+    <Style Selector="Border.warningBar">
+        <Setter Property="Background" Value="{DynamicResource CedroWarningSubtle}"/>
+        <Setter Property="CornerRadius" Value="8"/>
+        <Setter Property="Padding" Value="14,10"/>
+    </Style>
+
+    <Style Selector="TextBlock.pageTitle">
+        <Setter Property="FontSize" Value="26"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroText}"/>
+    </Style>
+    <Style Selector="TextBlock.pageSubtitle">
+        <Setter Property="FontSize" Value="13"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroTextSecondary}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+    </Style>
+    <Style Selector="TextBlock.cardTitle">
+        <Setter Property="FontSize" Value="14"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroText}"/>
+    </Style>
+    <Style Selector="TextBlock.helper">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroTextSecondary}"/>
+        <Setter Property="TextWrapping" Value="Wrap"/>
+        <Setter Property="LineHeight" Value="17"/>
+    </Style>
+    <Style Selector="TextBlock.value">
+        <Setter Property="FontSize" Value="12"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroAccent}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+        <Setter Property="MinWidth" Value="48"/>
+        <Setter Property="TextAlignment" Value="Right"/>
+    </Style>
+    <Style Selector="TextBlock.sectionLabel">
+        <Setter Property="FontSize" Value="11"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroTextTertiary}"/>
+        <Setter Property="Margin" Value="4,10,0,2"/>
+    </Style>
+
+    <!-- Buttons -->
+    <Style Selector="Button">
+        <Setter Property="Cursor" Value="Hand"/>
+        <Setter Property="CornerRadius" Value="6"/>
+    </Style>
+    <Style Selector="Button.accent">
+        <Setter Property="Background" Value="{DynamicResource CedroAccent}"/>
+        <Setter Property="Foreground" Value="White"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="14,7"/>
+        <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+    <Style Selector="Button.accent:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource CedroAccentHover}"/>
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+    <Style Selector="Button.accent:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource CedroAccentPressed}"/>
+        <Setter Property="Foreground" Value="White"/>
+    </Style>
+    <Style Selector="Button.subtle">
+        <Setter Property="Background" Value="{DynamicResource CedroControlBackground}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroText}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CedroCardBorder}"/>
+        <Setter Property="BorderThickness" Value="1"/>
+        <Setter Property="Padding" Value="12,7"/>
+    </Style>
+    <Style Selector="Button.subtle:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource CedroControlBackgroundHover}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroText}"/>
+        <Setter Property="BorderBrush" Value="{DynamicResource CedroCardBorder}"/>
+    </Style>
+    <Style Selector="Button.subtle:pressed /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="{DynamicResource CedroControlBackgroundPressed}"/>
+    </Style>
+    <Style Selector="Button.danger">
+        <Setter Property="Background" Value="{DynamicResource CedroDangerSubtle}"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroDanger}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="12,7"/>
+    </Style>
+    <Style Selector="Button.danger:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="#40FF6B6B"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroDanger}"/>
+    </Style>
+    <Style Selector="Button:disabled">
+        <Setter Property="Opacity" Value="0.45"/>
+    </Style>
+    <Style Selector="Button.link">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroAccent}"/>
+        <Setter Property="BorderThickness" Value="0"/>
+        <Setter Property="Padding" Value="0"/>
+    </Style>
+    <Style Selector="Button.link:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+        <Setter Property="Background" Value="Transparent"/>
+        <Setter Property="Foreground" Value="{DynamicResource CedroAccentHover}"/>
+    </Style>
+
+    <!-- Button glyph (same drawing language as the menus) -->
+    <Style Selector="Path.btnIcon">
+        <Setter Property="Width" Value="16"/>
+        <Setter Property="Height" Value="16"/>
+        <Setter Property="Stretch" Value="None"/>
+        <Setter Property="StrokeThickness" Value="1.5"/>
+        <Setter Property="StrokeLineCap" Value="Round"/>
+        <Setter Property="StrokeJoin" Value="Round"/>
+        <Setter Property="Stroke" Value="{Binding $parent[Button].Foreground}"/>
+        <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+
+    <Style Selector="Slider">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="ToggleSwitch, CheckBox, RadioButton, ComboBox, ComboBoxItem">
+        <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+</Styles>
