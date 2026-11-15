@@ -22,6 +22,8 @@ namespace CedroModernDock.Views;
 public partial class MainWindow
 {
     private MainWindowViewModel? DockVm => DataContext as MainWindowViewModel;
+    private ContextMenu? _dockContextMenu;
+    private DesktopContextMenuDismissal? _contextMenuDismissal;
 
     // ---------------------------------------------------------------------
     // Context menus
@@ -65,10 +67,21 @@ public partial class MainWindow
         int insertIndex = e.TryGetPosition(PinnedItems, out var clickPos)
             ? InsertionIndexAt(vm, clickPos, exclude: null)
             : int.MaxValue;
-        entries.AddRange(BuildDockEntries(vm, insertIndex));
+        entries.AddRange(BuildDockEntries(vm, insertIndex,
+            includeExit: dataContext is not DockItemViewModel && dataContext is not RunningAppViewModel));
 
+        _dockContextMenu?.Close();
         var menu = new ContextMenu { ItemsSource = entries };
+        _dockContextMenu = menu;
+        menu.Closed += (_, _) =>
+        {
+            if (!ReferenceEquals(_dockContextMenu, menu)) return;
+            _contextMenuDismissal?.Dispose();
+            _contextMenuDismissal = null;
+            _dockContextMenu = null;
+        };
         menu.Open(anchor);
+        if (menu.IsOpen) _contextMenuDismissal = new DesktopContextMenuDismissal(menu);
     }
 
     private IEnumerable<object> BuildItemEntries(MainWindowViewModel vm, DockItemViewModel item)
@@ -91,12 +104,13 @@ public partial class MainWindow
             yield return MakeItem(vm.T("contextMenu.removeItem", "Remove from dock"), Glyphs.Remove, () => vm.RemoveItem(item), danger: true);
     }
 
-    private IEnumerable<object> BuildDockEntries(MainWindowViewModel vm, int insertIndex)
+    private IEnumerable<object> BuildDockEntries(MainWindowViewModel vm, int insertIndex, bool includeExit)
     {
         yield return MakeItem(vm.T("contextMenu.addProgram", "Add a program..."), Glyphs.AddProgram, () => _ = AddProgramAsync(vm));
         yield return MakeItem(vm.T("contextMenu.addFolder", "Add a folder..."), Glyphs.AddFolder, () => _ = AddFolderAsync(vm));
         yield return MakeItem(vm.T("contextMenu.addSeparatorHere", "Add a separator here"), Glyphs.Separator, () => vm.AddSeparatorAt(insertIndex));
         yield return new Separator();
+        yield return BuildThemeSubmenu(vm);
         yield return MakeItem(
             vm.IconsLocked
                 ? vm.T("contextMenu.unlockIcons", "Unlock icons (move with the mouse)")
@@ -105,8 +119,39 @@ public partial class MainWindow
             () => vm.SetIconsLocked(!vm.IconsLocked));
         yield return new Separator();
         yield return MakeItem(vm.T("contextMenu.settings", "Settings..."), Glyphs.Settings, vm.OpenSettings);
-        if (vm.ExitAction != null)
+        if (includeExit && vm.ExitAction != null)
             yield return MakeItem(vm.T("contextMenu.exit", "Quit Cedro Dock"), Glyphs.Exit, vm.ExitAction);
+    }
+
+    /// <summary>"Theme" sub-menu: every installed theme, the active one checked.</summary>
+    private MenuItem BuildThemeSubmenu(MainWindowViewModel vm)
+    {
+        var parent = new MenuItem
+        {
+            Header = vm.T("contextMenu.theme", "Theme"),
+            Icon = Glyphs.MenuIcon(Glyphs.Theme)
+        };
+        var themes = _appServices?.ThemeService;
+        if (themes == null) return parent;
+        string activeId = themes.GetActiveTheme().Id;
+        var children = new List<object>();
+        foreach (var theme in themes.GetThemes())
+        {
+            var entry = new MenuItem
+            {
+                Header = theme.Name,
+                ToggleType = MenuItemToggleType.Radio,
+                IsChecked = theme.Id == activeId,
+                GroupName = "dockTheme"
+            };
+            string id = theme.Id;
+            entry.Click += (_, _) => themes.SetActiveTheme(id);
+            children.Add(entry);
+        }
+        children.Add(new Separator());
+        children.Add(MakeItem(vm.T("contextMenu.manageThemes", "Manage themes..."), Glyphs.Settings, vm.OpenThemesSettings));
+        parent.ItemsSource = children;
+        return parent;
     }
 
     private static MenuItem MakeItem(string header, string glyph, Action action, bool danger = false)

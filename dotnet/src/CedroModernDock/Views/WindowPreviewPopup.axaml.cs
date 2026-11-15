@@ -252,7 +252,7 @@ public partial class WindowPreviewPopup : Window
         if (anchor.GetVisualParent() is { } parent && parent.TransformToVisual(dockBar) is { } toBar)
         {
             var rect = anchor.Bounds.TransformToAABB(toBar);
-            // Hover zoom of the dock items (shared item style).
+            // Hover zoom of the active theme (shared item style).
             double zoom = anchor.DataContext switch
             {
                 DockItemViewModel item => item.Style.HoverZoom,

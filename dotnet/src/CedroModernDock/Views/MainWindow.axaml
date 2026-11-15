@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:CedroModernDock.ViewModels"
+        xmlns:ctl="using:CedroModernDock.Controls"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         mc:Ignorable="d" d:DesignWidth="500" d:DesignHeight="80"
@@ -22,28 +23,12 @@
     </Design.DataContext>
 
     <Window.Styles>
-        <!-- Dock item buttons: no Fluent hover/pressed background; hover zoom
-             and press feedback come from the shared item style (DockVisualStyle).
-             Both scale states come from styles: a local RenderTransform would
-             win over the :pointerover setter and disable the effect. -->
+        <!-- DockItemButton animates its content; its hit area stays fixed. -->
         <Style Selector="Button.dockItem">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="Padding" Value="4"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="RenderTransformOrigin" Value="50%, 50%"/>
-            <Setter Property="RenderTransform" Value="scale(1)"/>
-            <Setter Property="Transitions">
-                <Transitions>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="CubicEaseOut"/>
-                </Transitions>
-            </Setter>
-        </Style>
-        <Style Selector="Button.dockItem:pointerover">
-            <Setter Property="RenderTransform" Value="{ReflectionBinding Style.HoverTransform}"/>
-        </Style>
-        <Style Selector="Button.dockItem:pressed">
-            <Setter Property="RenderTransform" Value="{ReflectionBinding Style.PressedTransform}"/>
         </Style>
         <Style Selector="Button.dockItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
@@ -61,8 +46,8 @@
         </Style>
     </Window.Styles>
 
-    <!-- The margin is transparent zoom headroom: the window is sized to
-         its content, so hover-zoomed icons need room
+    <!-- The margin is transparent zoom/shadow headroom: the window is sized to
+         its content, so hover-zoomed icons and the theme's shadow need room
          past the bar's edge or the window would clip them. -->
     <Panel x:Name="DockBar"
            Margin="{Binding ZoomHeadroomThickness}"
@@ -70,11 +55,29 @@
            VerticalAlignment="Center"
            ContextRequested="OnDockContextRequested">
 
-        <!-- 1. Background -->
+        <!-- 1. Background: color / gradient, border, shadow -->
         <Border Background="{Binding DockBackground}"
-                CornerRadius="{Binding DockCornerRadius}"/>
+                BorderBrush="{Binding ThemeBorderBrush}"
+                BorderThickness="{Binding ThemeBorderThickness}"
+                CornerRadius="{Binding DockCornerRadius}"
+                BoxShadow="{Binding DockShadow}"/>
 
-        <!-- 2. Edit mode (icons unlocked): dashed accent outline -->
+        <!-- 2. Optional skin image (9-slice), like classic dock skins -->
+        <ctl:NineSliceImage Source="{Binding DockSkin}"
+                            Slice="{Binding DockSkinSlice}"
+                            Opacity="{Binding DockSkinOpacity}"
+                            IsVisible="{Binding HasDockSkin}"
+                            IsHitTestVisible="False"/>
+
+        <!-- 3. Glass reflection along the top edge -->
+        <Border BorderBrush="{Binding DockHighlight}"
+                BorderThickness="0,1,0,0"
+                Margin="{Binding ThemeBorderThickness}"
+                CornerRadius="{Binding HighlightCornerRadius}"
+                IsVisible="{Binding HasDockHighlight}"
+                IsHitTestVisible="False"/>
+
+        <!-- 4. Edit mode (icons unlocked): dashed accent outline -->
         <Rectangle Stroke="{Binding AccentBrush}"
                    StrokeThickness="1.5"
                    StrokeDashArray="3,2"
@@ -83,7 +86,7 @@
                    IsVisible="{Binding IconsUnlocked}"
                    IsHitTestVisible="False"/>
 
-        <!-- 3. Items -->
+        <!-- 5. Items -->
         <Border Padding="{Binding DockPaddingThickness}" Background="Transparent">
             <StackPanel Orientation="{Binding DockOrientation}" Spacing="{Binding Spacing}">
                 <!-- Pinned dock items. The Fluent theme makes ItemsControl clip to its
@@ -100,7 +103,7 @@
                             <!-- Transparent background so separators are hit-testable
                                  (right-click menu, drag reorder). -->
                             <Panel Background="Transparent" Opacity="{Binding Opacity}">
-                                <!-- User-added separator -->
+                                <!-- User-added separator, drawn by the theme -->
                                 <Panel IsVisible="{Binding IsSeparator}"
                                        Width="{Binding Style.SeparatorSlotWidth}"
                                        Height="{Binding Style.SeparatorSlotHeight}"
@@ -122,7 +125,7 @@
                                     </StackPanel>
                                 </Panel>
 
-                                <Button Classes="dockItem"
+                                <ctl:DockItemButton Classes="dockItem" HoverZoom="{Binding Style.HoverZoom}"
                                         Command="{Binding ClickCommand}"
                                         CommandParameter="{Binding}"
                                         IsVisible="{Binding IsButton}"
@@ -157,7 +160,7 @@
                                                    IsVisible="{Binding Style.IndicatorIsImage}"/>
                                         </Panel>
                                     </StackPanel>
-                                </Button>
+                                </ctl:DockItemButton>
                             </Panel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -197,7 +200,7 @@
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:RunningAppViewModel">
-                            <Button Classes="dockItem"
+                            <ctl:DockItemButton Classes="dockItem" HoverZoom="{Binding Style.HoverZoom}"
                                     ToolTip.Tip="{Binding Label}"
                                     ToolTip.Placement="{Binding Style.TooltipPlacement}"
                                     ToolTip.HorizontalOffset="{Binding Style.TooltipHorizontalOffset}"
@@ -228,7 +231,7 @@
                                                IsVisible="{Binding Style.IndicatorIsImage}"/>
                                     </Panel>
                                 </StackPanel>
-                            </Button>
+                            </ctl:DockItemButton>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

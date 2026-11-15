@@ -1,0 +1,54 @@
+{
+  "schemaVersion": 1,
+  "id": "hologramme",
+  "name": "Hologramme",
+  "author": "Cedro",
+  "version": "1.0.0",
+  "description": "Noir profond et filets cyan lumineux, interface de cockpit.",
+  "dock": {
+    "gradient": [
+      "#E6050A10",
+      "#E60A1620"
+    ],
+    "gradientAngle": 90,
+    "cornerRadius": 4,
+    "padding": 8,
+    "borderColor": "#FF00E5FF",
+    "borderThickness": 1,
+    "highlight": "#8000E5FF",
+    "shadow": {
+      "color": "#8000E5FF",
+      "blur": 18,
+      "offsetY": 0
+    }
+  },
+  "icons": {
+    "hoverZoom": 1.3
+  },
+  "indicator": {
+    "style": "glow",
+    "color": "#FF00E5FF",
+    "size": 6
+  },
+  "separator": {
+    "style": "dots",
+    "color": "#9900E5FF",
+    "thickness": 2
+  },
+  "tooltip": {
+    "background": "#F0050A10",
+    "foreground": "#FF7DF9FF",
+    "borderColor": "#FF00E5FF",
+    "cornerRadius": 2
+  },
+  "menu": {
+    "background": "#F2060C12",
+    "foreground": "#FFCFFAFF",
+    "secondaryForeground": "#FF5FA8B0",
+    "hover": "#FF0E2A33",
+    "accent": "#FF00E5FF",
+    "borderColor": "#8000E5FF",
+    "danger": "#FFFF3D71",
+    "cornerRadius": 2
+  }
+}

@@ -84,7 +84,7 @@ public partial class SettingsViewModel : ViewModelBase
     public int SelectedPageIndex { get => _selectedPageIndex; set => SetProperty(ref _selectedPageIndex, value); }
 
     /// <summary>Page indexes, in navigation order.</summary>
-    public const int PageItems = 0, PageIcons = 1, PageAppearance = 2, PagePosition = 3, PageGeneral = 4;
+    public const int PageItems = 0, PageIcons = 1, PageAppearance = 2, PageThemes = 3, PagePosition = 4, PageGeneral = 5;
 
     private bool _iconsLocked = true;
     /// <summary>When off, dock icons can be dragged to reorder them directly on the dock.</summary>
@@ -231,8 +231,7 @@ public partial class SettingsViewModel : ViewModelBase
     public string ArrangeVerticalText => T("settings.general.arrangeVertical");
     public string CustomColorText => T("settings.customColor");
 
-    // --- Redesigned settings: navigation, page subtitles, new options ---
-    public string TabItems => L("settings.tab.items", "Dock items");
+    // --- Redesigned settings: page subtitles, new options ---
     public string ItemsSubtitle => L("settings.items.subtitle", "Programs, folders and shortcuts shown in the dock.");
     public string IconsSubtitle => L("settings.iconsPage.subtitle", "Size, spacing and color of the icons.");
     public string AppearanceSubtitle => L("settings.appearance.subtitle", "Background, transparency and shape of the dock bar.");
@@ -310,6 +309,8 @@ public partial class SettingsViewModel : ViewModelBase
         ShowUnpinnedRunningApps = app.GetShowUnpinnedRunningApps();
         IsVerticalDock = app.GetVerticalDock();
         IconsLocked = _appServices.DockService.GetIconsLocked();
+        _appServices.ThemeService.ThemesChanged += OnThemesChanged;
+        RefreshThemes();
         _isInitialized = true;
     }
 
@@ -323,10 +324,10 @@ public partial class SettingsViewModel : ViewModelBase
         {
             case nameof(IconSize): OnIconSizeChanged(); break;
             case nameof(IconSpacing): OnIconSpacingChanged(); break;
-            case nameof(Transparency): OnTransparencyChanged(); break;
-            case nameof(BorderRounding): OnBorderRoundingChanged(); break;
+            case nameof(Transparency): OnTransparencyChanged(); RefreshThemes(); break;
+            case nameof(BorderRounding): OnBorderRoundingChanged(); RefreshThemes(); break;
             case nameof(DockPadding): OnDockPaddingChanged(); break;
-            case nameof(DockColor): OnDockColorChanged(); OnPropertyChanged(nameof(DockColorBrush)); break;
+            case nameof(DockColor): OnDockColorChanged(); OnPropertyChanged(nameof(DockColorBrush)); RefreshThemes(); break;
             case nameof(IconsLocked): _appServices.DockService.SetIconsLocked(IconsLocked); _dockRefreshAction(); break;
             case nameof(TintIcons): OnTintIconsChanged(); break;
             case nameof(TintColor): OnTintColorChanged(); OnPropertyChanged(nameof(TintColorBrush)); break;
@@ -575,6 +576,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     public void Shutdown()
     {
+        _appServices.ThemeService.ThemesChanged -= OnThemesChanged;
         _appServices.DockService.ItemsChanged -= RefreshItemLabels;
         if (_localizationRegistered)
         {

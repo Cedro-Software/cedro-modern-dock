@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "id": "acrylique",
+  "name": "Acrylique",
+  "author": "Cedro",
+  "version": "1.0.0",
+  "description": "Barre acrylique sombre façon Windows 11, accent bleu sobre.",
+  "dock": {
+    "background": "#D9202020",
+    "cornerRadius": 8,
+    "padding": 6,
+    "borderColor": "#1FFFFFFF",
+    "borderThickness": 1,
+    "highlight": "#14FFFFFF",
+    "shadow": {
+      "color": "#59000000",
+      "blur": 20,
+      "offsetY": 4
+    }
+  },
+  "icons": {
+    "hoverZoom": 1.2
+  },
+  "indicator": {
+    "style": "pill",
+    "color": "#FF60CDFF",
+    "size": 3
+  },
+  "separator": {
+    "style": "line",
+    "color": "#26FFFFFF",
+    "thickness": 1
+  },
+  "tooltip": {
+    "background": "#F22B2B2B",
+    "foreground": "#FFFFFFFF",
+    "borderColor": "#26FFFFFF",
+    "cornerRadius": 4
+  },
+  "menu": {
+    "background": "#F52C2C2C",
+    "foreground": "#FFFFFFFF",
+    "secondaryForeground": "#FFA0A0A0",
+    "hover": "#FF3A3A3A",
+    "accent": "#FF60CDFF",
+    "borderColor": "#1FFFFFFF",
+    "danger": "#FFFF99A4",
+    "cornerRadius": 8
+  }
+}

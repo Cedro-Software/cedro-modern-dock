@@ -159,6 +159,37 @@
             <Setter Property="RenderTransform" Value="scale(1.08)"/>
         </Style>
 
+        <!-- Theme gallery cards -->
+        <Style Selector="Border.themeCard">
+            <Setter Property="Width" Value="208"/>
+            <Setter Property="Margin" Value="0,0,14,14"/>
+            <Setter Property="CornerRadius" Value="12"/>
+            <Setter Property="Background" Value="{DynamicResource CedroCardBackground}"/>
+            <Setter Property="BorderBrush" Value="{DynamicResource CedroCardBorder}"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="ClipToBounds" Value="True"/>
+        </Style>
+        <Style Selector="Border.themeCard:pointerover">
+            <Setter Property="Background" Value="{DynamicResource CedroCardBackgroundHover}"/>
+            <Setter Property="BorderBrush" Value="#55FFFFFF"/>
+        </Style>
+        <Style Selector="Border.themeCard.active">
+            <Setter Property="BorderBrush" Value="{DynamicResource CedroAccent}"/>
+            <Setter Property="BorderThickness" Value="2"/>
+        </Style>
+        <Style Selector="Border.badge">
+            <Setter Property="CornerRadius" Value="10"/>
+            <Setter Property="Padding" Value="8,2"/>
+            <Setter Property="Background" Value="{DynamicResource CedroAccent}"/>
+            <Setter Property="VerticalAlignment" Value="Top"/>
+            <Setter Property="HorizontalAlignment" Value="Right"/>
+            <Setter Property="Margin" Value="0,8,8,0"/>
+        </Style>
+        <Style Selector="Button.mini">
+            <Setter Property="Padding" Value="8,3"/>
+            <Setter Property="FontSize" Value="11"/>
+        </Style>
     </Window.Styles>
 
     <TabControl Classes="nav" SelectedIndex="{Binding SelectedPageIndex}" Tag="{Binding VersionText}">
@@ -351,8 +382,16 @@
                     <TextBlock Classes="pageTitle" Text="{Binding TabDockCustomization}"/>
                     <TextBlock Classes="pageSubtitle" Text="{Binding AppearanceSubtitle}" Margin="0,0,0,8"/>
 
+                    <Border Classes="infoBar" IsVisible="{Binding HasThemeOverrideNotice}">
+                        <Grid ColumnDefinitions="Auto,*,Auto">
+                            <Path Data="{x:Static ctl:Glyphs.Theme}" Stroke="{DynamicResource CedroAccent}" StrokeThickness="1.4"
+                                  StrokeLineCap="Round" StrokeJoin="Round" Width="16" Height="16" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                            <TextBlock Grid.Column="1" Text="{Binding ThemeOverrideNotice}" TextWrapping="Wrap" FontSize="12" VerticalAlignment="Center"/>
+                            <Button Grid.Column="2" Classes="link" Content="{Binding TabThemes}" Click="OnGoToThemes" Margin="12,0,0,0" VerticalAlignment="Center"/>
+                        </Grid>
+                    </Border>
 
-                    <Border Classes="card">
+                    <Border Classes="card" IsEnabled="{Binding CanEditTransparency}">
                         <StackPanel Spacing="8">
                             <Grid ColumnDefinitions="*,Auto">
                                 <StackPanel Spacing="3">
@@ -366,7 +405,7 @@
                     </Border>
 
                     <Grid ColumnDefinitions="*,12,*">
-                        <Border Classes="card">
+                        <Border Classes="card" IsEnabled="{Binding CanEditRounding}">
                             <StackPanel Spacing="8">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Spacing="3">
@@ -378,7 +417,7 @@
                                 <Slider Minimum="0" Maximum="30" Value="{Binding BorderRounding}" TickFrequency="1" IsSnapToTickEnabled="True"/>
                             </StackPanel>
                         </Border>
-                        <Border Grid.Column="2" Classes="card">
+                        <Border Grid.Column="2" Classes="card" IsEnabled="{Binding CanEditPadding}">
                             <StackPanel Spacing="8">
                                 <Grid ColumnDefinitions="*,Auto">
                                     <StackPanel Spacing="3">
@@ -392,7 +431,7 @@
                         </Border>
                     </Grid>
 
-                    <Border Classes="card">
+                    <Border Classes="card" IsEnabled="{Binding CanEditDockColor}">
                         <StackPanel Spacing="10">
                             <StackPanel Spacing="3">
                                 <TextBlock Classes="cardTitle" Text="{Binding BgColorTitle}"/>
@@ -419,8 +458,158 @@
             </ScrollViewer>
         </TabItem>
 
+        <!-- =============================== 4. Themes =============================== -->
+        <TabItem>
+            <TabItem.Header>
+                <StackPanel Orientation="Horizontal" Spacing="11">
+                    <Path Classes="navIcon" Data="{x:Static ctl:Glyphs.Theme}"/>
+                    <TextBlock Text="{Binding TabThemes}"/>
+                </StackPanel>
+            </TabItem.Header>
+            <ScrollViewer Classes="page">
+                <StackPanel Classes="page">
+                    <TextBlock Classes="pageTitle" Text="{Binding TabThemes}"/>
+                    <TextBlock Classes="pageSubtitle" Text="{Binding ThemesSubtitle}" Margin="0,0,0,8"/>
 
-        <!-- =============================== 4. Position =============================== -->
+                    <WrapPanel Orientation="Horizontal">
+                        <Button Classes="accent" Click="OnImportTheme" Margin="0,0,8,8">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.Import}"/>
+                                <TextBlock Text="{Binding ImportThemeText}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="subtle" Click="OnCreateTheme" Margin="0,0,8,8">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.Create}"/>
+                                <TextBlock Text="{Binding CreateThemeText}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="subtle" Click="OnOpenThemesFolder" Margin="0,0,8,8">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.OpenLocation}"/>
+                                <TextBlock Text="{Binding OpenThemesFolderText}"/>
+                            </StackPanel>
+                        </Button>
+                        <Button Classes="subtle" Click="OnReloadThemes" Margin="0,0,8,8">
+                            <StackPanel Orientation="Horizontal" Spacing="7">
+                                <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.Refresh}"/>
+                                <TextBlock Text="{Binding ReloadThemesText}"/>
+                            </StackPanel>
+                        </Button>
+                    </WrapPanel>
+
+                    <Border Classes="warningBar" IsVisible="{Binding HasThemeErrors}">
+                        <StackPanel Spacing="4">
+                            <TextBlock Text="{Binding ThemeErrorsTitle}" FontWeight="SemiBold" Foreground="{DynamicResource CedroWarning}"/>
+                            <TextBlock Text="{Binding ThemeErrors}" FontSize="12" TextWrapping="Wrap"/>
+                        </StackPanel>
+                    </Border>
+
+                    <ItemsControl ItemsSource="{Binding ThemeCards}">
+                        <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate><WrapPanel Orientation="Horizontal"/></ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="vm:ThemeCardViewModel">
+                                <Border Classes="themeCard" Classes.active="{Binding IsActive}"
+                                        PointerPressed="OnThemeCardPressed"
+                                        ToolTip.Tip="{Binding Description}">
+                                    <StackPanel>
+                                        <!-- Preview: a miniature dock on a wallpaper-like backdrop -->
+                                        <Panel Height="104">
+                                            <Panel.Background>
+                                                <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                                                    <GradientStop Offset="0" Color="#FF3A5378"/>
+                                                    <GradientStop Offset="0.55" Color="#FF6A5D8E"/>
+                                                    <GradientStop Offset="1" Color="#FFC98B7A"/>
+                                                </LinearGradientBrush>
+                                            </Panel.Background>
+                                            <Panel HorizontalAlignment="Center" VerticalAlignment="Bottom" Margin="0,0,0,18">
+                                                <Border Background="{Binding PreviewBackground}"
+                                                        BorderBrush="{Binding PreviewBorderBrush}"
+                                                        BorderThickness="{Binding PreviewBorderThickness}"
+                                                        CornerRadius="{Binding PreviewCornerRadius}"
+                                                        BoxShadow="{Binding PreviewShadow}"/>
+                                                <Border BorderBrush="{Binding PreviewHighlight}" BorderThickness="0,1,0,0"
+                                                        CornerRadius="{Binding PreviewCornerRadius}" Margin="1"
+                                                        IsVisible="{Binding HasPreviewHighlight}"/>
+                                                <StackPanel Orientation="Horizontal" Spacing="6" Margin="8,7,8,5">
+                                                    <StackPanel Spacing="3">
+                                                        <Border Width="22" Height="22" CornerRadius="6" Background="#FF4C9AFF"/>
+                                                        <Border Width="{Binding PreviewIndicatorWidth}" Height="{Binding PreviewIndicatorHeight}"
+                                                                CornerRadius="{Binding PreviewIndicatorRadius}" Background="{Binding PreviewIndicator}"
+                                                                HorizontalAlignment="Center" IsVisible="{Binding PreviewHasIndicator}"/>
+                                                    </StackPanel>
+                                                    <StackPanel Spacing="3">
+                                                        <Border Width="22" Height="22" CornerRadius="6" Background="#FF34C77B"/>
+                                                        <Border Width="{Binding PreviewIndicatorWidth}" Height="{Binding PreviewIndicatorHeight}"
+                                                                CornerRadius="{Binding PreviewIndicatorRadius}" Background="{Binding PreviewIndicator}"
+                                                                HorizontalAlignment="Center" IsVisible="{Binding PreviewHasIndicator}"/>
+                                                    </StackPanel>
+                                                    <Border Width="22" Height="22" CornerRadius="6" Background="#FFFFB547" VerticalAlignment="Top"/>
+                                                    <Border Width="22" Height="22" CornerRadius="6" Background="#FFFF6B6B" VerticalAlignment="Top"/>
+                                                    <Border Width="22" Height="22" CornerRadius="6" Background="#FFB07CFF" VerticalAlignment="Top"/>
+                                                </StackPanel>
+                                            </Panel>
+                                            <Border Classes="badge" IsVisible="{Binding IsActive}">
+                                                <StackPanel Orientation="Horizontal" Spacing="4">
+                                                    <Path Data="{x:Static ctl:Glyphs.Check}" Stroke="White" StrokeThickness="2"
+                                                          StrokeLineCap="Round" StrokeJoin="Round" Width="16" Height="16"
+                                                          RenderTransform="scale(0.7)"/>
+                                                    <TextBlock Text="{Binding $parent[Window].((vm:SettingsViewModel)DataContext).ActiveBadgeText}"
+                                                               FontSize="11" FontWeight="SemiBold" Foreground="White" VerticalAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </Panel>
+                                        <!-- Name, author, actions -->
+                                        <Grid ColumnDefinitions="*,Auto" Margin="14,10,10,12">
+                                            <StackPanel Spacing="2" VerticalAlignment="Center">
+                                                <TextBlock Text="{Binding Name}" FontWeight="SemiBold" FontSize="13"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                                <TextBlock Text="{Binding Byline}" FontSize="11"
+                                                           Foreground="{DynamicResource CedroTextTertiary}"
+                                                           TextTrimming="CharacterEllipsis"/>
+                                            </StackPanel>
+                                            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4"
+                                                        IsVisible="{Binding IsUserTheme}" VerticalAlignment="Center">
+                                                <Button Classes="subtle mini" Click="OnExportTheme"
+                                                        ToolTip.Tip="{Binding $parent[Window].((vm:SettingsViewModel)DataContext).ExportThemeText}">
+                                                    <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.Export}"/>
+                                                </Button>
+                                                <Button Classes="danger mini" Click="OnDeleteTheme"
+                                                        ToolTip.Tip="{Binding $parent[Window].((vm:SettingsViewModel)DataContext).DeleteThemeText}">
+                                                    <Path Classes="btnIcon" Data="{x:Static ctl:Glyphs.Remove}"/>
+                                                </Button>
+                                            </StackPanel>
+                                        </Grid>
+                                        <TextBlock Text="{Binding Warnings}" IsVisible="{Binding HasWarnings}" FontSize="11"
+                                                   Foreground="{DynamicResource CedroWarning}" TextWrapping="Wrap" Margin="14,0,14,12"/>
+                                    </StackPanel>
+                                </Border>
+                            </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                    <Border Classes="card">
+                        <Grid ColumnDefinitions="Auto,*">
+                            <Border Width="36" Height="36" CornerRadius="9" Background="{DynamicResource CedroAccentSubtle}"
+                                    VerticalAlignment="Top" Margin="0,0,14,0">
+                                <Path Data="{x:Static ctl:Glyphs.Create}" Stroke="{DynamicResource CedroAccent}" StrokeThickness="1.5"
+                                      StrokeJoin="Round" Width="16" Height="16" HorizontalAlignment="Center" VerticalAlignment="Center"/>
+                            </Border>
+                            <StackPanel Grid.Column="1" Spacing="4">
+                                <TextBlock Classes="cardTitle" Text="{Binding AuthorsTitle}"/>
+                                <TextBlock Classes="helper" Text="{Binding AuthorsHelper}"/>
+                                <SelectableTextBlock Text="{Binding ThemesFolder}" FontSize="11" FontFamily="Consolas, Cascadia Mono, monospace"
+                                                     Foreground="{DynamicResource CedroTextTertiary}" Margin="0,4,0,0"/>
+                            </StackPanel>
+                        </Grid>
+                    </Border>
+                </StackPanel>
+            </ScrollViewer>
+        </TabItem>
+
+        <!-- =============================== 5. Position =============================== -->
         <TabItem>
             <TabItem.Header>
                 <StackPanel Orientation="Horizontal" Spacing="11">
@@ -507,7 +696,7 @@
             </ScrollViewer>
         </TabItem>
 
-        <!-- =============================== 5. General =============================== -->
+        <!-- =============================== 6. General =============================== -->
         <TabItem>
             <TabItem.Header>
                 <StackPanel Orientation="Horizontal" Spacing="11">

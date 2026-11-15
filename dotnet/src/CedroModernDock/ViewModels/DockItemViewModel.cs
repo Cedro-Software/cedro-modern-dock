@@ -51,7 +51,7 @@ public class DockItemViewModel : ViewModelBase
     /// <summary>True for items rendered as a clickable icon button.</summary>
     public bool IsButton => !IsSeparator;
 
-    /// <summary>Look shared by all dock items (set by the dock).</summary>
+    /// <summary>Theme-driven look shared by all dock items (set by the dock).</summary>
     public DockVisualStyle Style { get; set; } = new();
 
     /// <summary>Program and folder items can be renamed and retargeted.</summary>

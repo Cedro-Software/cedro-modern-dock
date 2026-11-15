@@ -3,6 +3,7 @@ namespace CedroModernDock.Tests;
 using CedroModernDock.Core.Application;
 using CedroModernDock.Core.Domain;
 using CedroModernDock.Core.Models;
+using CedroModernDock.Infrastructure.Windows.Persistence;
 using CedroModernDock.ViewModels;
 
 public class SettingsItemSynchronizationTest
@@ -107,6 +108,7 @@ public class SettingsItemSynchronizationTest
     private sealed class Fixture : IDockRepository, IIconGateway, IDisposable
     {
         private readonly DockModel _model = new();
+        private readonly string _themesDirectory = Path.Combine(Path.GetTempPath(), "CedroSettingsTest_" + Guid.NewGuid().ToString("N"));
         public DockService Dock { get; }
         public SettingsViewModel Settings { get; }
         public AppServices Services { get; }
@@ -118,7 +120,8 @@ public class SettingsItemSynchronizationTest
             Dock = new DockService(this);
             // These services are not used by the item-list operations under test.
             Services = new AppServices(Dock, new DockAppearanceService(Dock),
-                new DockPositioningService(Dock), null!, null!, this, new LocalizationService(Dock));
+                new DockPositioningService(Dock), null!, null!, this, new LocalizationService(Dock),
+                new ThemeService(Dock, new FileSystemThemeRepository(_themesDirectory)));
             Settings = new SettingsViewModel(Services, () => { }, _ => { });
             Settings.Initialize();
         }
@@ -129,6 +132,10 @@ public class SettingsItemSynchronizationTest
         public string? ResolveFolderIcon(string path) => null;
         public void CacheProgramIcon(string path) { }
         public void CacheFolderIcon(string path) { }
-        public void Dispose() => Settings.Shutdown();
+        public void Dispose()
+        {
+            Settings.Shutdown();
+            if (Directory.Exists(_themesDirectory)) Directory.Delete(_themesDirectory, recursive: true);
+        }
     }
 }

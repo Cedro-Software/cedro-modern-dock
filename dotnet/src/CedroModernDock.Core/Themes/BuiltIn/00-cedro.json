@@ -1,0 +1,22 @@
+{
+  "schemaVersion": 1,
+  "id": "cedro",
+  "name": "Cedro",
+  "author": "Cedro Software",
+  "version": "1.0.0",
+  "description": "Le thème d'origine : couleur, transparence, arrondi et marges suivent vos réglages.",
+  "icons": { "hoverZoom": 1.3 },
+  "indicator": { "style": "dot", "color": "#FFFFFFFF", "size": 4 },
+  "separator": { "style": "classic" },
+  "tooltip": { "background": "#F01F1F23", "foreground": "#FFF2F2F2", "borderColor": "#26FFFFFF", "cornerRadius": 7 },
+  "menu": {
+    "background": "#F51C1C20",
+    "foreground": "#FFF0F0F0",
+    "secondaryForeground": "#FF9A9AA2",
+    "hover": "#1FFFFFFF",
+    "accent": "#FF4C9AFF",
+    "borderColor": "#24FFFFFF",
+    "danger": "#FFFF6B6B",
+    "cornerRadius": 10
+  }
+}
