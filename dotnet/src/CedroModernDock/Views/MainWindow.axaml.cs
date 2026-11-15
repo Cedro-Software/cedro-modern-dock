@@ -126,9 +126,13 @@ public partial class MainWindow : Window
         if (!force && _appServices.PositioningService.IsDynamicPositioning()) return;
         // Anchors and the saved position refer to the visible bar, which sits
         // inside the window's zoom headroom.
+        // The screen bounds and the result are in physical pixels (the process
+        // is DPI aware), while Avalonia sizes are DIPs: convert, or the dock
+        // drifts off-center on scaled displays (by 12.5% of its width at 125%).
         double headroom = DockBar.Margin.Left;
+        double scale = RenderScaling;
         var (x, y) = _appServices.PositioningService.ResolvePosition(
-            Width - 2 * headroom, Height - 2 * headroom);
+            (ClientSize.Width - 2 * headroom) * scale, (ClientSize.Height - 2 * headroom) * scale);
         int offset = ZoomHeadroomPixels;
         Position = new PixelPoint((int)x - offset, (int)y - offset);
     }
