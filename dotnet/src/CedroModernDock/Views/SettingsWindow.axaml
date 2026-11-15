@@ -41,6 +41,18 @@
                                                    Foreground="{DynamicResource CedroTextTertiary}"/>
                                     </StackPanel>
                                 </StackPanel>
+                                <Border DockPanel.Dock="Bottom" Margin="8,16,8,0" Padding="0,14,0,0"
+                                        BorderBrush="{DynamicResource CedroCardBorder}" BorderThickness="0,1,0,0"
+                                        x:DataType="vm:SettingsViewModel">
+                                    <StackPanel Spacing="8">
+                                        <TextBlock Text="{Binding LanguageLabel}" FontSize="12"
+                                                   Foreground="{DynamicResource CedroTextSecondary}"/>
+                                        <ComboBox ItemsSource="{Binding LanguageNames}"
+                                                  SelectedIndex="{Binding SelectedLanguageIndex, Mode=TwoWay}"
+                                                  HorizontalAlignment="Stretch"
+                                                  ToolTip.Tip="{Binding LanguageHelper}"/>
+                                    </StackPanel>
+                                </Border>
                                 <ItemsPresenter Name="PART_ItemsPresenter" ItemsPanel="{TemplateBinding ItemsPanel}"/>
                             </DockPanel>
                         </Border>
