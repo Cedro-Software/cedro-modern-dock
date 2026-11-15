@@ -753,6 +753,28 @@
                                 </StackPanel>
                                 <ToggleSwitch Grid.Column="1" IsChecked="{Binding IconsLocked}"/>
                             </Grid>
+                            <Border Height="1" Background="{DynamicResource CedroCardBorder}"/>
+                            <Grid ColumnDefinitions="*,Auto" Margin="18,14">
+                                <StackPanel Spacing="3">
+                                    <TextBlock Classes="cardTitle" Text="{Binding DiscreetModeText}"/>
+                                    <TextBlock Classes="helper" Text="{Binding DiscreetModeHelper}"/>
+                                </StackPanel>
+                                <ToggleSwitch x:Name="DiscreetModeToggle" Grid.Column="1" IsChecked="{Binding IsDiscreetMode}"/>
+                            </Grid>
+                            <StackPanel Spacing="8" Margin="18,0,18,14" IsVisible="{Binding IsDiscreetMode}">
+                                <Grid ColumnDefinitions="*,Auto">
+                                    <TextBlock Text="{Binding DiscreetModeDelayTitle}" Classes="helper"/>
+                                    <TextBlock Grid.Column="1" Classes="value" Text="{Binding DiscreetModeDelay, StringFormat='{}{0} ms'}"/>
+                                </Grid>
+                                <Slider x:Name="DiscreetModeDelaySlider" Minimum="0" Maximum="1000" TickFrequency="50"
+                                        IsSnapToTickEnabled="True" Value="{Binding DiscreetModeDelay}"/>
+                                <Grid ColumnDefinitions="*,Auto" Margin="0,8,0,0">
+                                    <TextBlock Text="{Binding DiscreetModeOpacityTitle}" Classes="helper"/>
+                                    <TextBlock Grid.Column="1" Classes="value" Text="{Binding DiscreetModeOpacity, StringFormat='{}{0}%'}"/>
+                                </Grid>
+                                <Slider x:Name="DiscreetModeOpacitySlider" Minimum="15" Maximum="50" TickFrequency="1"
+                                        IsSnapToTickEnabled="True" Value="{Binding DiscreetModeOpacity}"/>
+                            </StackPanel>
                         </StackPanel>
                     </Border>
 

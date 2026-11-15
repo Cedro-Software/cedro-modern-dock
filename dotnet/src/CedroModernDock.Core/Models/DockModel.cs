@@ -105,6 +105,16 @@ public class DockModel
     [JsonPropertyName("themeId")]
     public string ThemeId { get; set; } = "cedro";
 
+    // Keep the PR's configuration keys while describing its actual behavior.
+    [JsonPropertyName("autoHide")]
+    public bool DiscreetMode { get; set; }
+
+    [JsonPropertyName("autoHideDelay")]
+    public int DiscreetModeDelay { get; set; } = 300;
+
+    [JsonPropertyName("discreetModeOpacity")]
+    public int DiscreetModeOpacity { get; set; } = 15;
+
     public void AddItem(DockItem item) => Items.Add(item);
 
     public void InsertItem(int index, DockItem item)
