@@ -9,7 +9,7 @@ using CedroModernDock.Core.Models;
 namespace CedroModernDock.ViewModels;
 
 /// <summary>One row in the Settings dock-items list: display label + icon.</summary>
-public sealed record DockItemListEntry(string Label, Bitmap? Icon, string? Detail = null)
+public sealed record DockItemListEntry(DockItem Item, string Label, Bitmap? Icon, string? Detail = null)
 {
     public bool HasDetail => !string.IsNullOrEmpty(Detail);
 }
@@ -280,6 +280,7 @@ public partial class SettingsViewModel : ViewModelBase
 
     public void Initialize()
     {
+        _appServices.DockService.ItemsChanged += RefreshItemLabels;
         _appServices.LocalizationService.AddListener(_applyLocalizedTexts);
         _localizationRegistered = true;
 
@@ -415,7 +416,6 @@ public partial class SettingsViewModel : ViewModelBase
         var sel = ProgramSelectionResolver.Resolve(path);
         _appServices.IconGateway.CacheProgramIcon(sel.ExecutablePath);
         _appServices.DockService.AddItem(new DockProgramItemModel(sel.Label, sel.ExecutablePath));
-        RefreshItemLabels();
         _dockRefreshAction();
     }
 
@@ -434,7 +434,6 @@ public partial class SettingsViewModel : ViewModelBase
             label = path;
         _appServices.IconGateway.CacheFolderIcon(path);
         _appServices.DockService.AddItem(new DockFolderItemModel(label, path));
-        RefreshItemLabels();
         _dockRefreshAction();
     }
 
@@ -442,39 +441,31 @@ public partial class SettingsViewModel : ViewModelBase
     {
         int index = SelectedItemIndex >= 0 ? SelectedItemIndex + 1 : int.MaxValue;
         _appServices.DockService.InsertItem(index, new DockSeparatorItemModel());
-        RefreshItemLabels();
         SelectedItemIndex = Math.Min(index, ItemEntries.Count - 1);
         _dockRefreshAction();
     }
 
     public void RemoveSelected()
     {
-        if (SelectedItemIndex < 0) return;
-        _appServices.DockService.RemoveItem(SelectedItemIndex);
-        SelectedItemIndex = -1;
-        RefreshItemLabels();
+        int index = SelectedModelIndex();
+        if (index < 0) return;
+        _appServices.DockService.RemoveItem(index);
         _dockRefreshAction();
     }
 
     public void MoveItemUp()
     {
-        if (SelectedItemIndex <= 0) return;
-        _appServices.DockService.SwapItems(SelectedItemIndex, SelectedItemIndex - 1);
-        int newIndex = SelectedItemIndex - 1;
-        RefreshItemLabels();
-        // Apply the selection after the rebuild: setting it before
-        // RefreshItemLabels would be wiped by the collection Clear.
-        SelectedItemIndex = newIndex;
+        int index = SelectedModelIndex();
+        if (index <= 0) return;
+        _appServices.DockService.SwapItems(index, index - 1);
         _dockRefreshAction();
     }
 
     public void MoveItemDown()
     {
-        if (SelectedItemIndex < 0 || SelectedItemIndex >= ItemEntries.Count - 1) return;
-        _appServices.DockService.SwapItems(SelectedItemIndex, SelectedItemIndex + 1);
-        int newIndex = SelectedItemIndex + 1;
-        RefreshItemLabels();
-        SelectedItemIndex = newIndex;
+        int index = SelectedModelIndex();
+        if (index < 0 || index >= _appServices.DockService.GetItems().Count - 1) return;
+        _appServices.DockService.SwapItems(index, index + 1);
         _dockRefreshAction();
     }
 
@@ -486,27 +477,36 @@ public partial class SettingsViewModel : ViewModelBase
     public void MoveItem(int fromIndex, int toIndex)
     {
         if (fromIndex < 0 || fromIndex >= ItemEntries.Count) return;
+        var item = ItemEntries[fromIndex].Item;
+        fromIndex = _appServices.DockService.GetItems().IndexOf(item);
+        if (fromIndex < 0) return;
         toIndex = Math.Clamp(toIndex, 0, ItemEntries.Count);
         if (fromIndex == toIndex) return;
         _appServices.DockService.MoveItem(fromIndex, toIndex);
         // DockModel.MoveItem leaves the item at index toIndex - 1 when moving
         // down (the gap shifts), so mirror that here for the selection.
         int newIndex = toIndex > fromIndex ? toIndex - 1 : toIndex;
-        RefreshItemLabels();
         SelectedItemIndex = newIndex;
         _dockRefreshAction();
     }
 
     public void RefreshItemLabels()
     {
+        var selected = SelectedItemIndex >= 0 && SelectedItemIndex < ItemEntries.Count
+            ? ItemEntries[SelectedItemIndex].Item : null;
         ItemEntries.Clear();
         foreach (var item in _appServices.DockService.GetItems())
         {
             string label = _appServices.LocalizationService.DockItemLabel(item);
-            ItemEntries.Add(new DockItemListEntry(label, ResolveItemIcon(item), ResolveItemDetail(item)));
+            ItemEntries.Add(new DockItemListEntry(item, label, ResolveItemIcon(item), ResolveItemDetail(item)));
         }
+        SelectedItemIndex = selected == null ? -1 : _appServices.DockService.GetItems().IndexOf(selected);
         UpdateButtonStates();
     }
+
+    private int SelectedModelIndex()
+        => SelectedItemIndex >= 0 && SelectedItemIndex < ItemEntries.Count
+            ? _appServices.DockService.GetItems().IndexOf(ItemEntries[SelectedItemIndex].Item) : -1;
 
     private string? ResolveItemDetail(DockItem item) => item switch
     {
@@ -552,10 +552,10 @@ public partial class SettingsViewModel : ViewModelBase
     private void UpdateButtonStates()
     {
         var items = _appServices.DockService.GetItems();
-        CanRemove = SelectedItemIndex >= 0 && SelectedItemIndex < items.Count
-            && items[SelectedItemIndex] is not DockSettingsItemModel;
-        CanMoveUp = SelectedItemIndex > 0;
-        CanMoveDown = SelectedItemIndex >= 0 && SelectedItemIndex < ItemEntries.Count - 1;
+        int index = SelectedModelIndex();
+        CanRemove = index >= 0 && items[index] is not DockSettingsItemModel;
+        CanMoveUp = index > 0;
+        CanMoveDown = index >= 0 && index < items.Count - 1;
         OnPropertyChanged(nameof(CanRemove));
         OnPropertyChanged(nameof(CanMoveUp));
         OnPropertyChanged(nameof(CanMoveDown));
@@ -577,6 +577,7 @@ public partial class SettingsViewModel : ViewModelBase
     public void Shutdown()
     {
         _appServices.ThemeService.ThemesChanged -= OnThemesChanged;
+        _appServices.DockService.ItemsChanged -= RefreshItemLabels;
         if (_localizationRegistered)
         {
             _appServices.LocalizationService.RemoveListener(_applyLocalizedTexts);

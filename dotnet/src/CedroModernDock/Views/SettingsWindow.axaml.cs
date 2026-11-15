@@ -177,7 +177,10 @@ public partial class SettingsWindow : Window
             Text("settings.themes.delete", "Delete"),
             Text("dialog.cancel", "Cancel"),
             danger: true);
-        if (confirmed) Vm.DeleteTheme(card.Id);
+        if (!confirmed) return;
+        string? error = Vm.DeleteTheme(card.Id);
+        if (error != null)
+            await Dialogs.MessageAsync(this, Text("settings.themes.delete.failed", "Delete failed"), error, Text("dialog.ok", "OK"));
     }
 
     private static void OpenFolder(string folder)

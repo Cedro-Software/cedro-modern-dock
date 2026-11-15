@@ -8,5 +8,5 @@ public interface IProgramLauncher
     /// successfully, false when the executable could not be launched
     /// (e.g. it no longer exists).
     /// </summary>
-    bool Launch(string executablePath, string label);
+    bool Launch(string executablePath, string label, string arguments = "", string? workingDirectory = null);
 }

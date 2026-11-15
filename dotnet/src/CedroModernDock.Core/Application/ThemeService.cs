@@ -91,6 +91,7 @@ public class ThemeService
         if (theme == null || theme.IsBuiltIn) return false;
         bool wasActive = string.Equals(GetActiveTheme().Id, id, StringComparison.OrdinalIgnoreCase);
         bool deleted = _repository.Delete(id);
+        if (!deleted) return false;
         if (wasActive)
         {
             _dockService.GetDock().ThemeId = DefaultThemeId;

@@ -47,13 +47,10 @@ public sealed class FileSystemThemeRepository : IThemeRepository
         {
             // Hidden work folders (.staging-*, .previous-*) are never themes.
             if (Path.GetFileName(dir).StartsWith('.')) continue;
-            string manifestPath = Path.Combine(dir, ThemeParser.ManifestFileName);
-            if (!File.Exists(manifestPath)) continue;
+            if (!File.Exists(Path.Combine(dir, ThemeParser.ManifestFileName))) continue;
             try
             {
-                if (new FileInfo(manifestPath).Length > MaxManifestBytes)
-                    throw new ThemeFormatException("theme.json is too large.");
-                themes.Add(ThemeParser.Parse(File.ReadAllText(manifestPath), dir, isBuiltIn: false));
+                themes.Add(ReadManifest(dir, Path.GetFileName(dir)));
             }
             catch (Exception e) when (e is ThemeFormatException or IOException or UnauthorizedAccessException)
             {
@@ -86,7 +83,8 @@ public sealed class FileSystemThemeRepository : IThemeRepository
         CheckReserved(probe.Id, isReservedId);
 
         string target = TargetFor(probe.Id);
-        if (Path.GetFullPath(sourceDir).TrimEnd('\\') == Path.GetFullPath(target).TrimEnd('\\'))
+        if (string.Equals(Path.TrimEndingDirectorySeparator(Path.GetFullPath(sourceDir)),
+                Path.TrimEndingDirectorySeparator(target), StringComparison.OrdinalIgnoreCase))
             return probe; // already in place
 
         var files = Directory.EnumerateFiles(sourceDir, "*", SearchOption.AllDirectories)
@@ -105,7 +103,7 @@ public sealed class FileSystemThemeRepository : IThemeRepository
                 Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
                 File.Copy(file, dest);
             }
-            return Commit(staging, target);
+            return Commit(staging, target, probe.Id, isReservedId);
         }
         finally
         {
@@ -157,6 +155,7 @@ public sealed class FileSystemThemeRepository : IThemeRepository
             try
             {
                 string stagingRoot = Path.GetFullPath(staging) + Path.DirectorySeparatorChar;
+                var extractedPaths = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
                 long budget = MaxTotalBytes; // enforced on the bytes actually written
                 foreach (var entry in zip.Entries)
                 {
@@ -167,10 +166,12 @@ public sealed class FileSystemThemeRepository : IThemeRepository
                     if (!AllowedExtensions.Contains(Path.GetExtension(rel))) continue;
                     string dest = Path.GetFullPath(Path.Combine(staging, rel));
                     if (!dest.StartsWith(stagingRoot, StringComparison.OrdinalIgnoreCase)) continue;
+                    if (!extractedPaths.Add(dest))
+                        throw new ThemeFormatException($"The theme package contains a duplicate file: '{rel}'.");
                     Directory.CreateDirectory(Path.GetDirectoryName(dest)!);
                     budget -= CopyBounded(entry, dest, budget);
                 }
-                return Commit(staging, TargetFor(probe.Id));
+                return Commit(staging, TargetFor(probe.Id), probe.Id, isReservedId);
             }
             finally
             {
@@ -180,9 +181,10 @@ public sealed class FileSystemThemeRepository : IThemeRepository
     }
 
     /// <summary>Validates the staged copy, then swaps it into place.</summary>
-    private LoadedTheme Commit(string staging, string target)
+    private LoadedTheme Commit(string staging, string target, string expectedId, Func<string, bool>? isReservedId)
     {
-        ThemeParser.Parse(File.ReadAllText(Path.Combine(staging, ThemeParser.ManifestFileName)), staging, false);
+        var staged = ReadManifest(staging, expectedId);
+        CheckReserved(staged.Id, isReservedId);
         Directory.CreateDirectory(ThemesDirectory);
         // Keep the previous version aside until the new one is in place.
         string? previous = null;
@@ -201,7 +203,7 @@ public sealed class FileSystemThemeRepository : IThemeRepository
             throw;
         }
         if (previous != null) TryDelete(previous);
-        return ThemeParser.Parse(File.ReadAllText(Path.Combine(target, ThemeParser.ManifestFileName)), target, false);
+        return staged with { Directory = target };
     }
 
     public bool Delete(string themeId)
@@ -209,6 +211,7 @@ public sealed class FileSystemThemeRepository : IThemeRepository
         if (!ThemeParser.IsValidId(themeId)) return false;
         string target = TargetFor(themeId);
         if (!Directory.Exists(target)) return false;
+        ReadManifest(target, themeId);
         Directory.Delete(target, recursive: true);
         return true;
     }
@@ -229,17 +232,32 @@ public sealed class FileSystemThemeRepository : IThemeRepository
         string source = TargetFor(themeId);
         if (!Directory.Exists(source))
             throw new ThemeFormatException($"Theme '{themeId}' is not installed.");
+        ReadManifest(source, themeId);
         if (File.Exists(destinationFile)) File.Delete(destinationFile);
         ZipFile.CreateFromDirectory(source, destinationFile, CompressionLevel.Optimal, includeBaseDirectory: true);
     }
 
     private string TargetFor(string themeId)
     {
+        if (!ThemeParser.IsValidId(themeId))
+            throw new ThemeFormatException($"Invalid theme id '{themeId}'.");
         string target = Path.GetFullPath(Path.Combine(ThemesDirectory, themeId));
         string root = Path.GetFullPath(ThemesDirectory).TrimEnd('\\') + "\\";
         if (!target.StartsWith(root, StringComparison.OrdinalIgnoreCase))
             throw new ThemeFormatException($"Invalid theme id '{themeId}'.");
         return target;
+    }
+
+    private static LoadedTheme ReadManifest(string directory, string expectedId)
+    {
+        string path = Path.Combine(directory, ThemeParser.ManifestFileName);
+        if (new FileInfo(path).Length > MaxManifestBytes)
+            throw new ThemeFormatException("theme.json is too large.");
+        var theme = ThemeParser.Parse(File.ReadAllText(path), directory, isBuiltIn: false);
+        if (!string.Equals(theme.Id, expectedId, StringComparison.OrdinalIgnoreCase))
+            throw new ThemeFormatException(
+                $"Theme id '{theme.Id}' does not match folder '{expectedId}'. Rename the folder to match the id, then refresh the theme list.");
+        return theme;
     }
 
     private static void CheckReserved(string id, Func<string, bool>? isReservedId)

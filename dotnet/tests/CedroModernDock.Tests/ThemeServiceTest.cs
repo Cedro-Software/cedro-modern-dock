@@ -217,6 +217,21 @@ public class ThemeServiceTest : IDisposable
     }
 
     [Fact]
+    public void FailedDeletionKeepsTheActiveThemeAndItsSavedConfiguration()
+    {
+        var service = NewService();
+        var theme = service.Install(MakeThemeFolder("mine", "Mine"));
+        service.SetActiveTheme("mine");
+        Directory.Move(theme.Directory!, Path.Combine(_themesDir, "renamed"));
+
+        Assert.False(service.Delete("mine"));
+
+        Assert.Equal("mine", _dockService.GetDock().ThemeId);
+        Assert.Equal("mine", _dockRepository.SavedModel!.ThemeId);
+        Assert.True(Directory.Exists(Path.Combine(_themesDir, "renamed")));
+    }
+
+    [Fact]
     public void BuiltInThemesCannotBeDeleted()
     {
         var service = NewService();

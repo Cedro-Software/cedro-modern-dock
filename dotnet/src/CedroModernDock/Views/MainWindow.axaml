@@ -23,28 +23,12 @@
     </Design.DataContext>
 
     <Window.Styles>
-        <!-- Dock item buttons: no Fluent hover/pressed background; hover zoom
-             and press feedback come from the active theme (DockVisualStyle).
-             Both scale states come from styles: a local RenderTransform would
-             win over the :pointerover setter and disable the effect. -->
+        <!-- DockItemButton animates its content; its hit area stays fixed. -->
         <Style Selector="Button.dockItem">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderBrush" Value="Transparent"/>
             <Setter Property="Padding" Value="4"/>
             <Setter Property="Cursor" Value="Hand"/>
-            <Setter Property="RenderTransformOrigin" Value="50%, 50%"/>
-            <Setter Property="RenderTransform" Value="scale(1)"/>
-            <Setter Property="Transitions">
-                <Transitions>
-                    <TransformOperationsTransition Property="RenderTransform" Duration="0:0:0.18" Easing="CubicEaseOut"/>
-                </Transitions>
-            </Setter>
-        </Style>
-        <Style Selector="Button.dockItem:pointerover">
-            <Setter Property="RenderTransform" Value="{ReflectionBinding Style.HoverTransform}"/>
-        </Style>
-        <Style Selector="Button.dockItem:pressed">
-            <Setter Property="RenderTransform" Value="{ReflectionBinding Style.PressedTransform}"/>
         </Style>
         <Style Selector="Button.dockItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
             <Setter Property="Background" Value="Transparent"/>
@@ -141,7 +125,7 @@
                                     </StackPanel>
                                 </Panel>
 
-                                <Button Classes="dockItem"
+                                <ctl:DockItemButton Classes="dockItem" HoverZoom="{Binding Style.HoverZoom}"
                                         Command="{Binding ClickCommand}"
                                         CommandParameter="{Binding}"
                                         IsVisible="{Binding IsButton}"
@@ -176,7 +160,7 @@
                                                    IsVisible="{Binding Style.IndicatorIsImage}"/>
                                         </Panel>
                                     </StackPanel>
-                                </Button>
+                                </ctl:DockItemButton>
                             </Panel>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
@@ -216,7 +200,7 @@
 
                     <ItemsControl.ItemTemplate>
                         <DataTemplate x:DataType="vm:RunningAppViewModel">
-                            <Button Classes="dockItem"
+                            <ctl:DockItemButton Classes="dockItem" HoverZoom="{Binding Style.HoverZoom}"
                                     ToolTip.Tip="{Binding Label}"
                                     ToolTip.Placement="{Binding Style.TooltipPlacement}"
                                     ToolTip.HorizontalOffset="{Binding Style.TooltipHorizontalOffset}"
@@ -247,7 +231,7 @@
                                                IsVisible="{Binding Style.IndicatorIsImage}"/>
                                     </Panel>
                                 </StackPanel>
-                            </Button>
+                            </ctl:DockItemButton>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

@@ -64,9 +64,11 @@ reloaded too).
 | Images | Anywhere inside the theme folder, referenced by relative path |
 | This guide | `%APPDATA%\CedroModernDock\Themes\THEMES.md` |
 
-Each sub-folder of the themes folder that contains a `theme.json` is loaded.
-Installing a package always puts the theme in a folder named after its `id`,
-so name your folder like the id.
+Each sub-folder of the themes folder that contains a valid `theme.json` is
+loaded. Its folder name must match its `id` (case-insensitive on Windows).
+Mismatches appear in the gallery's error list. Installing a package puts the
+theme in a folder named after its `id`. If you edit an installed theme's id,
+rename its folder too, then refresh the gallery.
 
 Built-in themes are part of the application and cannot be edited or deleted.
 Their ids are reserved: `cedro`, `givre`, `ardoise`, `cristal`, `acrylique`,
@@ -91,7 +93,7 @@ integer is expected, `"cornerRadius": 12.5`). Integer properties are marked
 | Property | Type | Required | Meaning |
 |----------|------|----------|---------|
 | `schemaVersion` | int | no (default `1`) | Format version. This build understands `1`; a higher value is rejected ("needs a newer Cedro Modern Dock"). |
-| `id` | string | **yes** | Unique id, also the install folder name. 2 to 64 characters: lowercase letters `a-z`, digits, `.`, `_`, `-`; must start with a letter or digit (regex `^[a-z0-9][a-z0-9._-]{1,63}$`). |
+| `id` | string | **yes** | Unique id, also the install folder name. 2 to 64 characters: lowercase letters `a-z`, digits, `.`, `_`, `-`; must start with a letter or digit and must not end with a dot. |
 | `name` | string | **yes** | Display name in the gallery. Trimmed, cut to 60 characters. |
 | `author` | string | no | Cut to 60 characters. |
 | `version` | string | no | Free text, for example `1.2.0`. Cut to 20 characters. |
@@ -183,6 +185,9 @@ color is dropped).
 | Property | Type | Range | Default | Meaning |
 |----------|------|-------|---------|---------|
 | `hoverZoom` | number | 1.0..1.8 | `1.3` | Icon magnification on hover. `1.0` disables the zoom. |
+
+Hover and press transitions last 300 ms for every theme; duration is not a
+theme property. The built-in Ardoise theme uses `hoverZoom: 1.25` (25% larger).
 
 ### `indicator`
 
@@ -312,11 +317,13 @@ corners plus a few pixels of center.
 - Formats: `png`, `jpg`, `jpeg`, `bmp`, `webp`, `gif` (PNG recommended:
   it keeps transparency).
 - Paths are relative to the theme folder: `background.png`,
-  `images/indicator.png`. Absolute paths, drive letters and `..` are
-  rejected with a warning.
+  `images/indicator.png`. Absolute paths, drive letters, control characters
+  (including NUL), Windows-invalid characters (`< > : " | ? *`), and path
+  segments ending in a dot or space are rejected with a warning. This also
+  excludes `.` and `..` segments.
 - A path that is valid but points to a missing or unreadable file is
-  silently skipped: the skin is not drawn, an image separator leaves an
-  empty gap, an image indicator is replaced by a plain bar in
+  silently skipped: the skin is not drawn, an image separator falls back to
+  a line, and an image indicator falls back to a dot in
   `indicator.color`. No warning is shown for this case, so double-check
   your file names.
 
@@ -329,7 +336,8 @@ When themes are loaded, two kinds of problems are reported in
   listed under "Some installed themes could not be loaded". Causes: invalid
   JSON (including a wrong value type), missing or invalid `id`, missing
   `name`, `schemaVersion` above 1, `theme.json` over 256 KB, or an `id`
-  already used by another theme (built-in or installed).
+  already used by another theme (built-in or installed), or a folder name
+  that does not match its manifest's `id`.
 - **Warnings** keep the theme: the faulty value is dropped and its default
   applies. They are shown on the theme's card. Causes: invalid color,
   unknown `style`, gradient with fewer than 2 colors, malformed `slice`,
@@ -337,6 +345,10 @@ When themes are loaded, two kinds of problems are reported in
   an image.
 
 Out-of-range numbers are clamped silently (no warning).
+
+Deletion and export recheck the manifest's identity. If an installed theme's
+id has been edited without renaming its folder, the operation reports an
+error and leaves the folder and any existing export file untouched.
 
 ## Packaging and sharing
 
@@ -364,8 +376,10 @@ Limits and rules:
   `.bmp`, `.webp`, `.gif`, `.txt`, `.md`. Everything else is skipped, so a
   `README.md` or `LICENSE.txt` is welcome, executables are not.
 - Entries with unsafe paths (absolute, `..`) are skipped.
-- The package is validated before anything is written; the theme is
-  installed to `Themes\<id>` and activated.
+- Duplicate extraction paths, including case-only duplicates, reject the package.
+- Files are extracted to a staging folder. The final manifest must retain
+  the probed id and pass the reserved-id and size checks before an installed
+  theme is replaced. The theme is installed to `Themes\<id>` and activated.
 - Installing a theme with the **same id** as an installed one replaces it
   (that is how updates work: keep the id, bump `version`).
 - Packages using a built-in id are refused.

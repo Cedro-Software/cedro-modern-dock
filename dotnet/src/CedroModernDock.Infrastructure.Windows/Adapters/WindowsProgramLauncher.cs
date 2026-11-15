@@ -10,7 +10,7 @@ using CedroModernDock.Core.Domain;
 /// </summary>
 public class WindowsProgramLauncher : IProgramLauncher
 {
-    public bool Launch(string executablePath, string label)
+    public bool Launch(string executablePath, string label, string arguments = "", string? workingDirectory = null)
     {
         Debug.WriteLine($"{label} Clicked");
 
@@ -22,7 +22,7 @@ public class WindowsProgramLauncher : IProgramLauncher
 
         try
         {
-            return ExecuteAndHandleElevation(executablePath, label);
+            return ExecuteAndHandleElevation(executablePath, label, arguments, workingDirectory);
         }
         catch (Exception e)
         {
@@ -37,9 +37,9 @@ public class WindowsProgramLauncher : IProgramLauncher
         }
     }
 
-    private bool ExecuteAndHandleElevation(string path, string label)
+    private bool ExecuteAndHandleElevation(string path, string label, string arguments, string? workingDirectory)
     {
-        var launchCommand = ResolveLaunchCommand(path);
+        var launchCommand = ResolveLaunchCommand(path, arguments, workingDirectory);
         if (!File.Exists(launchCommand.ExecutablePath))
         {
             Debug.WriteLine($"Executable not found: {launchCommand.ExecutablePath}");
@@ -48,15 +48,7 @@ public class WindowsProgramLauncher : IProgramLauncher
 
         try
         {
-            var startInfo = new ProcessStartInfo
-            {
-                FileName = launchCommand.ExecutablePath,
-                UseShellExecute = false
-            };
-            foreach (var arg in launchCommand.Arguments)
-                startInfo.ArgumentList.Add(arg);
-
-            Process.Start(startInfo);
+            Process.Start(CreateStartInfo(launchCommand));
             Debug.WriteLine($"Executing: {label}");
             return true;
         }
@@ -66,13 +58,7 @@ public class WindowsProgramLauncher : IProgramLauncher
             if (e.NativeErrorCode == 740)
             {
                 Debug.WriteLine("Standard execution failed. Requesting elevation...");
-                string command = BuildElevationCommand(launchCommand);
-                Process.Start(new ProcessStartInfo
-                {
-                    FileName = "powershell.exe",
-                    Arguments = $"-Command {command}",
-                    UseShellExecute = false
-                });
+                Process.Start(CreateStartInfo(launchCommand, elevated: true));
                 Debug.WriteLine($"(Elevated) Executing: {label}");
                 return true;
             }
@@ -86,7 +72,7 @@ public class WindowsProgramLauncher : IProgramLauncher
     /// Resolves the actual launch command for an executable, handling
     /// Discord's Squirrel installer pattern (app runs via Update.exe --processStart).
     /// </summary>
-    public static LaunchCommand ResolveLaunchCommand(string executablePath)
+    public static LaunchCommand ResolveLaunchCommand(string executablePath, string arguments = "", string? workingDirectory = null)
     {
         string normalizedPath = Path.GetFullPath(executablePath);
         if (IsDiscordExecutable(normalizedPath))
@@ -100,15 +86,18 @@ public class WindowsProgramLauncher : IProgramLauncher
                 string updateExecutable = Path.Combine(installDirectory, "Update.exe");
                 if (File.Exists(updateExecutable))
                 {
-                    return new LaunchCommand(
-                        updateExecutable,
-                        new[] { "--processStart", Path.GetFileName(normalizedPath) }
-                    );
+                    var updaterArguments = new List<string> { "--processStart", Path.GetFileName(normalizedPath) };
+                    if (!string.IsNullOrEmpty(arguments))
+                    {
+                        updaterArguments.Add("--process-start-args");
+                        updaterArguments.Add(arguments);
+                    }
+                    return new LaunchCommand(updateExecutable, updaterArguments.ToArray(), WorkingDirectory: workingDirectory);
                 }
             }
         }
 
-        return new LaunchCommand(normalizedPath, Array.Empty<string>());
+        return new LaunchCommand(normalizedPath, Array.Empty<string>(), arguments ?? "", workingDirectory);
     }
 
     private static bool IsDiscordExecutable(string executablePath)
@@ -126,20 +115,26 @@ public class WindowsProgramLauncher : IProgramLauncher
             && string.Equals(Path.GetFileName(installDirectory), "Discord", StringComparison.OrdinalIgnoreCase);
     }
 
-    private static string BuildElevationCommand(LaunchCommand launchCommand)
+    public static ProcessStartInfo CreateStartInfo(LaunchCommand command, bool elevated = false)
     {
-        string escapedFilePath = EscapePowerShellArgument(launchCommand.ExecutablePath);
-        if (launchCommand.Arguments.Length == 0)
-            return $"Start-Process -FilePath '{escapedFilePath}' -Verb RunAs";
-
-        string escapedArguments = string.Join(", ",
-            launchCommand.Arguments.Select(a => $"'{EscapePowerShellArgument(a)}'"));
-
-        return $"Start-Process -FilePath '{escapedFilePath}' -ArgumentList {escapedArguments} -Verb RunAs";
+        var startInfo = new ProcessStartInfo
+        {
+            FileName = command.ExecutablePath,
+            UseShellExecute = elevated,
+            Verb = elevated ? "runas" : "",
+            WorkingDirectory = command.WorkingDirectory ?? ""
+        };
+        // Shortcut arguments are already a Windows command line; splitting them
+        // would alter quoting, empty arguments and paths containing spaces.
+        if (!string.IsNullOrEmpty(command.RawArguments))
+            startInfo.Arguments = command.RawArguments;
+        else
+            foreach (var arg in command.Arguments)
+                startInfo.ArgumentList.Add(arg);
+        return startInfo;
     }
 
-    private static string EscapePowerShellArgument(string argument) => argument.Replace("'", "''");
-
     /// <summary>Direct port of the Java LaunchCommand record.</summary>
-    public sealed record LaunchCommand(string ExecutablePath, string[] Arguments);
+    public sealed record LaunchCommand(string ExecutablePath, string[] Arguments,
+        string RawArguments = "", string? WorkingDirectory = null);
 }

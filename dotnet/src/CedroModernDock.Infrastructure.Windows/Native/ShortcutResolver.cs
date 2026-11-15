@@ -5,20 +5,25 @@ using System.Text;
 
 namespace CedroModernDock.Infrastructure.Windows.Native;
 
-/// <summary>Turns a dropped file into an executable path the dock can launch.</summary>
+/// <summary>Resolves dropped programs and preserves shortcut launch details.</summary>
 public static class ShortcutResolver
 {
+    public sealed record ResolvedShortcut(string ExecutablePath, string Arguments = "", string? WorkingDirectory = null);
+
     /// <summary>
     /// Returns the .exe path for an .exe file or a .lnk shortcut pointing to an
     /// .exe; null for anything else (documents, .url links, broken shortcuts).
     /// </summary>
     public static string? ResolveExecutable(string path)
+        => Resolve(path)?.ExecutablePath;
+
+    public static ResolvedShortcut? Resolve(string path)
     {
         if (!File.Exists(path)) return null;
         string ext = Path.GetExtension(path);
 
         if (ext.Equals(".exe", StringComparison.OrdinalIgnoreCase))
-            return path;
+            return new ResolvedShortcut(path);
 
         if (!ext.Equals(".lnk", StringComparison.OrdinalIgnoreCase))
             return null;
@@ -26,30 +31,36 @@ public static class ShortcutResolver
         // MSI "advertised" shortcuts (e.g. VLC, Office) point to an icon in
         // C:\Windows\Installer; the real target comes from Windows Installer.
         string? msiTarget = ResolveMsiShortcut(path);
-        if (msiTarget != null)
-            return msiTarget;
-
         try
         {
             var shellType = Type.GetTypeFromProgID("WScript.Shell");
-            if (shellType == null) return null;
+            if (shellType == null) return msiTarget == null ? null : new ResolvedShortcut(msiTarget);
             dynamic shell = Activator.CreateInstance(shellType)!;
             try
             {
                 dynamic shortcut = shell.CreateShortcut(path);
-                string target = Environment.ExpandEnvironmentVariables((string)shortcut.TargetPath ?? "");
-                return target.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && File.Exists(target)
-                    ? target
-                    : null;
+                try
+                {
+                    string target = msiTarget ?? Environment.ExpandEnvironmentVariables((string)shortcut.TargetPath ?? "");
+                    string arguments = (string)shortcut.Arguments ?? "";
+                    string directory = Environment.ExpandEnvironmentVariables((string)shortcut.WorkingDirectory ?? "");
+                    return target.EndsWith(".exe", StringComparison.OrdinalIgnoreCase) && File.Exists(target)
+                        ? new ResolvedShortcut(target, arguments, string.IsNullOrWhiteSpace(directory) ? null : directory)
+                        : null;
+                }
+                finally
+                {
+                    Marshal.FinalReleaseComObject(shortcut);
+                }
             }
             finally
             {
-                System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell);
+                Marshal.FinalReleaseComObject(shell);
             }
         }
         catch
         {
-            return null;
+            return msiTarget == null ? null : new ResolvedShortcut(msiTarget);
         }
     }
 

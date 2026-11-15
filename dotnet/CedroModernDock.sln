@@ -15,6 +15,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CedroModernDock.Tests", "te
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CedroModernDock.Core", "src\CedroModernDock.Core\CedroModernDock.Core.csproj", "{D8EB35A7-6FC1-4CB0-B58E-4A7F7B294DE8}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "CedroModernDock.InteractionTests", "tests\CedroModernDock.InteractionTests\CedroModernDock.InteractionTests.csproj", "{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -73,6 +75,18 @@ Global
 		{D8EB35A7-6FC1-4CB0-B58E-4A7F7B294DE8}.Release|x64.Build.0 = Release|Any CPU
 		{D8EB35A7-6FC1-4CB0-B58E-4A7F7B294DE8}.Release|x86.ActiveCfg = Release|Any CPU
 		{D8EB35A7-6FC1-4CB0-B58E-4A7F7B294DE8}.Release|x86.Build.0 = Release|Any CPU
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}.Debug|x64.Build.0 = Debug|Any CPU
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}.Debug|x86.Build.0 = Debug|Any CPU
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}.Release|Any CPU.Build.0 = Release|Any CPU
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}.Release|x64.ActiveCfg = Release|Any CPU
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}.Release|x64.Build.0 = Release|Any CPU
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}.Release|x86.ActiveCfg = Release|Any CPU
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
@@ -82,5 +96,6 @@ Global
 		{666F759F-70C0-4D6C-8C4B-9F8CEA6EA4CA} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
 		{FA8317A3-F9C0-4175-A3AA-E848348B3920} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 		{D8EB35A7-6FC1-4CB0-B58E-4A7F7B294DE8} = {827E0CD3-B72D-47B6-A68D-7590B98EB39B}
+		{35DBECFA-EE3B-4D7E-85DD-0D6FCE5CAC81} = {0AB3BF05-4346-4AA6-1389-037BE0695223}
 	EndGlobalSection
 EndGlobal

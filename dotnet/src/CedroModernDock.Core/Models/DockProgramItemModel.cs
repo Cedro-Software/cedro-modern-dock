@@ -12,6 +12,12 @@ public class DockProgramItemModel : DockItem
     public string Label { get; set; } = "";
     public string Path { get; set; } = "";
 
+    public string Arguments { get; set; } = "";
+    public string? WorkingDirectory { get; set; }
+
+    /// <summary>Shortcut launch target when it differs from the executable tracked by the dock.</summary>
+    public string? LaunchPath { get; set; }
+
     [JsonIgnore]
     public string ExecutablePath => Path;
 

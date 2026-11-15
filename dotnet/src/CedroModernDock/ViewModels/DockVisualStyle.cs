@@ -1,9 +1,7 @@
-using System.Globalization;
 using Avalonia;
 using Avalonia.Controls;
 using Avalonia.Media;
 using Avalonia.Media.Imaging;
-using Avalonia.Media.Transformation;
 
 namespace CedroModernDock.ViewModels;
 
@@ -25,20 +23,10 @@ public sealed class DockVisualStyle : ViewModelBase
         {
             if (SetProperty(ref _hoverZoom, value))
             {
-                OnPropertyChanged(nameof(HoverTransform));
-                OnPropertyChanged(nameof(PressedTransform));
                 UpdateTooltipOffsets();
             }
         }
     }
-
-    public TransformOperations HoverTransform => Scale(HoverZoom);
-
-    /// <summary>Slight press-down feedback relative to the hover size.</summary>
-    public TransformOperations PressedTransform => Scale(Math.Max(1.0, HoverZoom * 0.9));
-
-    private static TransformOperations Scale(double factor)
-        => TransformOperations.Parse($"scale({factor.ToString("0.###", CultureInfo.InvariantCulture)})");
 
     // --- Layout context -----------------------------------------------------
 

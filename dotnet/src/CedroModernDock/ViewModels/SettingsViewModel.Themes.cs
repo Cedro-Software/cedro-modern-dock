@@ -168,7 +168,18 @@ public partial class SettingsViewModel
         }
     }
 
-    public void DeleteTheme(string id) => _appServices.ThemeService.Delete(id);
+    public string? DeleteTheme(string id)
+    {
+        try
+        {
+            return _appServices.ThemeService.Delete(id) ? null
+                : L("settings.themes.delete.unavailable", "The theme is no longer available. Refresh the theme list and try again.");
+        }
+        catch (Exception e) when (e is ThemeFormatException or IOException or UnauthorizedAccessException)
+        {
+            return e.Message;
+        }
+    }
 
     public string? ExportTheme(string id, string destination)
     {

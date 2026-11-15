@@ -1,10 +1,56 @@
 namespace CedroModernDock.Tests;
 
 using System.IO;
+using System.Text.Json;
 using CedroModernDock.Core.Themes;
 
 public class ThemeParserTest : IDisposable
 {
+    [Theory]
+    [InlineData("bad\0.png")]
+    [InlineData("bad\n.png")]
+    [InlineData("bad<name.png")]
+    [InlineData("bad>name.png")]
+    [InlineData("bad\"name.png")]
+    [InlineData("bad|name.png")]
+    [InlineData("bad?name.png")]
+    [InlineData("bad*name.png")]
+    [InlineData("folder. /image.png")]
+    [InlineData("folder./image.png")]
+    public void DropsInvalidWindowsImagePathsAndResolveFileDoesNotThrow(string path)
+    {
+        string jsonPath = JsonSerializer.Serialize(path);
+        var theme = Parse($"\"dock\": {{ \"image\": {{ \"path\": {jsonPath} }} }}, " +
+            $"\"indicator\": {{ \"style\": \"image\", \"image\": {jsonPath} }}, " +
+            $"\"separator\": {{ \"style\": \"image\", \"image\": {jsonPath}, \"imageVertical\": {jsonPath} }}", _tempDir);
+
+        Assert.Null(theme.Manifest.Dock!.Image);
+        Assert.Null(theme.Manifest.Indicator!.Image);
+        Assert.Equal("dot", theme.Manifest.Indicator.Style);
+        Assert.Null(theme.Manifest.Separator!.Image);
+        Assert.Null(theme.Manifest.Separator.ImageVertical);
+        Assert.Equal("line", theme.Manifest.Separator.Style);
+        Assert.Contains(theme.Warnings, w => w.StartsWith("dock.image.path:"));
+        Assert.Null(theme.ResolveFile(path));
+    }
+
+    [Fact]
+    public void ResolveFileReturnsNullWhenTheThemeDirectoryCannotBeNormalized()
+    {
+        var theme = Parse("", "bad\0directory");
+        Assert.Null(theme.ResolveFile("image.png"));
+    }
+
+    [Theory]
+    [InlineData("trailing.")]
+    [InlineData("trailing\n")]
+    public void RejectsIdsThatAliasOrContainInvalidWindowsDirectoryNames(string id)
+    {
+        Assert.False(ThemeParser.IsValidId(id));
+        Assert.Throws<ThemeFormatException>(() => ThemeParser.Parse(
+            $"{{ \"id\": {JsonSerializer.Serialize(id)}, \"name\": \"Invalid\" }}", null, false));
+    }
+
     private readonly string _tempDir;
 
     public ThemeParserTest()

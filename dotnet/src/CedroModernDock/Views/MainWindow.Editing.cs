@@ -22,6 +22,8 @@ namespace CedroModernDock.Views;
 public partial class MainWindow
 {
     private MainWindowViewModel? DockVm => DataContext as MainWindowViewModel;
+    private ContextMenu? _dockContextMenu;
+    private DesktopContextMenuDismissal? _contextMenuDismissal;
 
     // ---------------------------------------------------------------------
     // Context menus
@@ -65,10 +67,21 @@ public partial class MainWindow
         int insertIndex = e.TryGetPosition(PinnedItems, out var clickPos)
             ? InsertionIndexAt(vm, clickPos, exclude: null)
             : int.MaxValue;
-        entries.AddRange(BuildDockEntries(vm, insertIndex));
+        entries.AddRange(BuildDockEntries(vm, insertIndex,
+            includeExit: dataContext is not DockItemViewModel && dataContext is not RunningAppViewModel));
 
+        _dockContextMenu?.Close();
         var menu = new ContextMenu { ItemsSource = entries };
+        _dockContextMenu = menu;
+        menu.Closed += (_, _) =>
+        {
+            if (!ReferenceEquals(_dockContextMenu, menu)) return;
+            _contextMenuDismissal?.Dispose();
+            _contextMenuDismissal = null;
+            _dockContextMenu = null;
+        };
         menu.Open(anchor);
+        if (menu.IsOpen) _contextMenuDismissal = new DesktopContextMenuDismissal(menu);
     }
 
     private IEnumerable<object> BuildItemEntries(MainWindowViewModel vm, DockItemViewModel item)
@@ -91,7 +104,7 @@ public partial class MainWindow
             yield return MakeItem(vm.T("contextMenu.removeItem", "Remove from dock"), Glyphs.Remove, () => vm.RemoveItem(item), danger: true);
     }
 
-    private IEnumerable<object> BuildDockEntries(MainWindowViewModel vm, int insertIndex)
+    private IEnumerable<object> BuildDockEntries(MainWindowViewModel vm, int insertIndex, bool includeExit)
     {
         yield return MakeItem(vm.T("contextMenu.addProgram", "Add a program..."), Glyphs.AddProgram, () => _ = AddProgramAsync(vm));
         yield return MakeItem(vm.T("contextMenu.addFolder", "Add a folder..."), Glyphs.AddFolder, () => _ = AddFolderAsync(vm));
@@ -106,7 +119,7 @@ public partial class MainWindow
             () => vm.SetIconsLocked(!vm.IconsLocked));
         yield return new Separator();
         yield return MakeItem(vm.T("contextMenu.settings", "Settings..."), Glyphs.Settings, vm.OpenSettings);
-        if (vm.ExitAction != null)
+        if (includeExit && vm.ExitAction != null)
             yield return MakeItem(vm.T("contextMenu.exit", "Quit Cedro Dock"), Glyphs.Exit, vm.ExitAction);
     }
 
@@ -186,10 +199,10 @@ public partial class MainWindow
         _ => null
     };
 
-    private static void LaunchExecutable(string path)
+    private void LaunchExecutable(string path)
     {
-        try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
-        catch { /* best-effort */ }
+        _appServices?.ItemActionService.Execute(
+            new DockProgramItemModel(Path.GetFileNameWithoutExtension(path), path), () => { });
     }
 
     /// <summary>Asks every window of the program to close (WM_CLOSE, like the taskbar).</summary>

@@ -314,16 +314,22 @@ public partial class MainWindowViewModel : ViewModelBase
             }
             else
             {
-                string? exe = ShortcutResolver.ResolveExecutable(raw);
-                if (exe != null)
+                var shortcut = ShortcutResolver.Resolve(raw);
+                if (shortcut != null)
                 {
-                    var sel = ProgramSelectionResolver.Resolve(exe);
+                    var sel = ProgramSelectionResolver.Resolve(shortcut.ExecutablePath);
                     _appServices.IconGateway.CacheProgramIcon(sel.ExecutablePath);
                     // Keep the shortcut's name (e.g. "Visual Studio Code" rather than "Code").
                     string label = raw.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase)
                         ? Path.GetFileNameWithoutExtension(raw)
                         : sel.Label;
-                    item = new DockProgramItemModel(label, sel.ExecutablePath);
+                    item = new DockProgramItemModel(label, sel.ExecutablePath)
+                    {
+                        Arguments = shortcut.Arguments,
+                        WorkingDirectory = shortcut.WorkingDirectory,
+                        LaunchPath = raw.EndsWith(".lnk", StringComparison.OrdinalIgnoreCase)
+                            ? shortcut.ExecutablePath : null
+                    };
                 }
             }
             if (item == null) continue;
@@ -358,7 +364,7 @@ public partial class MainWindowViewModel : ViewModelBase
         newLabel = newLabel.Trim();
         if (newLabel.Length == 0) return;
         vm.Item.Label = newLabel;
-        _appServices.DockService.SaveChanges();
+        _appServices.DockService.SaveItemChanges();
         UpdateDockUI();
     }
 
@@ -366,17 +372,20 @@ public partial class MainWindowViewModel : ViewModelBase
     public void RetargetItem(DockItemViewModel vm, string newPath)
     {
         if (_appServices == null || !vm.CanEdit || string.IsNullOrWhiteSpace(newPath)) return;
-        if (vm.Item is DockProgramItemModel)
+        if (vm.Item is DockProgramItemModel program)
         {
             var sel = ProgramSelectionResolver.Resolve(newPath);
             _appServices.IconGateway.CacheProgramIcon(sel.ExecutablePath);
             vm.Item.Path = sel.ExecutablePath;
+            program.Arguments = "";
+            program.WorkingDirectory = null;
+            program.LaunchPath = null;
         }
         else
         {
             vm.Item.Path = newPath;
         }
-        _appServices.DockService.SaveChanges();
+        _appServices.DockService.SaveItemChanges();
         UpdateDockUI();
     }
 

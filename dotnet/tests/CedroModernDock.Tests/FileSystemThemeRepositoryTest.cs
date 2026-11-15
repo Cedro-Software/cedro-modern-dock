@@ -8,6 +8,104 @@ using CedroModernDock.Infrastructure.Windows.Persistence;
 
 public class FileSystemThemeRepositoryTest : IDisposable
 {
+    [Fact]
+    public void LoadAllReportsRenamedFoldersAndKeepsValidThemes()
+    {
+        var renamed = _repository.Install(MakeSourceFolder("original"));
+        Directory.Move(renamed.Directory!, Path.Combine(_themesDir, "renamed"));
+        _repository.Install(MakeSourceFolder("valid"));
+
+        var themes = _repository.LoadAll(out var errors);
+
+        Assert.Equal("valid", Assert.Single(themes).Id);
+        Assert.Contains(errors, e => e.Contains("original") && e.Contains("renamed"));
+        Assert.True(Directory.Exists(Path.Combine(_themesDir, "renamed")));
+    }
+
+    [Fact]
+    public void LoadAllAllowsFolderNamesWithDifferentLetterCase()
+    {
+        var installed = _repository.Install(MakeSourceFolder("my-theme"));
+        string temporary = Path.Combine(_themesDir, "temporary");
+        Directory.Move(installed.Directory!, temporary);
+        Directory.Move(temporary, Path.Combine(_themesDir, "MY-THEME"));
+
+        Assert.Equal("my-theme", Assert.Single(_repository.LoadAll(out var errors)).Id);
+        Assert.Empty(errors);
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void ChangedManifestIdentityCannotBeDeletedOrExported(bool export)
+    {
+        var first = _repository.Install(MakeSourceFolder("first"));
+        var second = _repository.Install(MakeSourceFolder("second"));
+        File.WriteAllText(Path.Combine(first.Directory!, "theme.json"), Manifest("second"));
+        string destination = Path.Combine(_tempDir, "existing.cedrotheme");
+        File.WriteAllText(destination, "keep existing export");
+
+        Assert.Throws<ThemeFormatException>(() =>
+        {
+            if (export) _repository.Export("first", destination);
+            else _repository.Delete("first");
+        });
+
+        Assert.True(Directory.Exists(first.Directory));
+        Assert.True(Directory.Exists(second.Directory));
+        Assert.Equal("keep existing export", File.ReadAllText(destination));
+        Assert.Equal("second", Assert.Single(_repository.LoadAll(out var errors)).Id);
+        Assert.Single(errors);
+    }
+
+    [Theory]
+    [InlineData("theme.json")]
+    [InlineData("THEME.JSON")]
+    public void DuplicatePackageManifestsCannotReplaceAnInstalledTheme(string duplicatePath)
+    {
+        _repository.Install(MakeSourceFolder("keep", "Original"));
+        string package = MakeZip(("theme.json", Manifest("keep", "First")),
+            (duplicatePath, Manifest("another-id", "Replacement")));
+
+        Assert.Throws<ThemeFormatException>(() => _repository.Install(package));
+
+        Assert.Equal("Original", Assert.Single(_repository.LoadAll(out _)).Name);
+        Assert.False(Directory.Exists(Path.Combine(_themesDir, "another-id")));
+        AssertNoStagingFolders();
+    }
+
+    [Fact]
+    public void ChangedStagedManifestCannotReplaceAnInstalledTheme()
+    {
+        _repository.Install(MakeSourceFolder("keep", "Original"));
+        string source = MakeSourceFolder("keep", "Update");
+
+        Assert.Throws<ThemeFormatException>(() => _repository.Install(source, id =>
+        {
+            // Change the source after the probe, before its files are copied.
+            File.WriteAllText(Path.Combine(source, "theme.json"), Manifest("changed-id"));
+            return false;
+        }));
+
+        Assert.Equal("Original", Assert.Single(_repository.LoadAll(out _)).Name);
+        Assert.False(Directory.Exists(Path.Combine(_themesDir, "changed-id")));
+        AssertNoStagingFolders();
+    }
+
+    [Fact]
+    public void StagedManifestIsCheckedForReservedIdsBeforeReplacingAnInstalledTheme()
+    {
+        _repository.Install(MakeSourceFolder("keep", "Original"));
+        int checks = 0;
+
+        Assert.Throws<ThemeFormatException>(() => _repository.Install(MakeSourceFolder("keep", "Update"),
+            _ => ++checks == 2));
+
+        Assert.Equal(2, checks);
+        Assert.Equal("Original", Assert.Single(_repository.LoadAll(out _)).Name);
+        AssertNoStagingFolders();
+    }
+
     private readonly string _tempDir;
     private readonly string _themesDir;
     private readonly FileSystemThemeRepository _repository;

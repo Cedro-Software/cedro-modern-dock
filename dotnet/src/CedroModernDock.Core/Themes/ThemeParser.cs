@@ -27,11 +27,18 @@ public sealed record LoadedTheme(ThemeManifest Manifest, string? Directory, bool
     {
         if (Directory == null || string.IsNullOrWhiteSpace(relativePath)) return null;
         if (!ThemeParser.IsSafeRelativePath(relativePath)) return null;
-        string root = Path.GetFullPath(Directory);
-        string full = Path.GetFullPath(Path.Combine(root, relativePath));
-        if (!full.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+        try
+        {
+            string root = Path.GetFullPath(Directory);
+            string full = Path.GetFullPath(Path.Combine(root, relativePath));
+            if (!full.StartsWith(root.TrimEnd(Path.DirectorySeparatorChar) + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+                return null;
+            return File.Exists(full) ? full : null;
+        }
+        catch (Exception e) when (e is ArgumentException or NotSupportedException or PathTooLongException)
+        {
             return null;
-        return File.Exists(full) ? full : null;
+        }
     }
 }
 
@@ -44,7 +51,7 @@ public static class ThemeParser
 {
     public const string ManifestFileName = "theme.json";
 
-    private static readonly Regex IdPattern = new("^[a-z0-9][a-z0-9._-]{1,63}$", RegexOptions.Compiled);
+    private static readonly Regex IdPattern = new(@"\A[a-z0-9][a-z0-9._-]{1,63}\z", RegexOptions.Compiled);
     private static readonly string[] ImageExtensions = { ".png", ".jpg", ".jpeg", ".bmp", ".webp", ".gif" };
 
     public static readonly IReadOnlySet<string> IndicatorStyles = new HashSet<string> { "dot", "line", "pill", "glow", "image", "none" };
@@ -64,13 +71,15 @@ public static class ThemeParser
         Encoder = System.Text.Encodings.Web.JavaScriptEncoder.UnsafeRelaxedJsonEscaping
     };
 
-    public static bool IsValidId(string? id) => id != null && IdPattern.IsMatch(id);
+    public static bool IsValidId(string? id) => id != null && IdPattern.IsMatch(id) && !id.EndsWith('.');
 
     public static bool IsSafeRelativePath(string path)
     {
-        if (Path.IsPathRooted(path) || path.Contains(':')) return false;
+        // Validate Windows file names consistently, including when Core is
+        // used on another platform. Separators are checked segment by segment.
+        if (Path.IsPathRooted(path) || path.Any(c => c < ' ' || "<>:\"|?*".Contains(c))) return false;
         var segments = path.Replace('\\', '/').Split('/');
-        return segments.All(s => s != ".." && s.Length > 0);
+        return segments.All(s => s.Length > 0 && !s.EndsWith('.') && !s.EndsWith(' '));
     }
 
     public static LoadedTheme Parse(string json, string? directory, bool isBuiltIn)
@@ -88,7 +97,7 @@ public static class ThemeParser
 
         if (!IsValidId(manifest.Id))
             throw new ThemeFormatException(
-                $"Invalid theme id '{manifest.Id}': use 2-64 lowercase letters, digits, '.', '_' or '-'.");
+                $"Invalid theme id '{manifest.Id}': use 2-64 lowercase letters, digits, '.', '_' or '-', without a trailing dot.");
         if (string.IsNullOrWhiteSpace(manifest.Name))
             throw new ThemeFormatException("The theme has no name.");
         if (manifest.SchemaVersion > ThemeManifest.CurrentSchemaVersion)
