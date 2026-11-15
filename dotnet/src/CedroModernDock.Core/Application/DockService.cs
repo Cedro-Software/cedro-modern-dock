@@ -12,6 +12,14 @@ public class DockService
     private readonly IDockRepository _repository;
     private readonly DockModel _dock;
 
+    public event Action? ItemsChanged;
+
+    public void SaveItemChanges()
+    {
+        SaveChanges();
+        ItemsChanged?.Invoke();
+    }
+
     public DockService(IDockRepository repository)
     {
         _repository = repository;
@@ -25,13 +33,13 @@ public class DockService
     public void AddItem(DockItem item)
     {
         _dock.AddItem(item);
-        SaveChanges();
+        SaveItemChanges();
     }
 
     public void InsertItem(int index, DockItem item)
     {
         _dock.InsertItem(index, item);
-        SaveChanges();
+        SaveItemChanges();
     }
 
     public bool GetIconsLocked() => _dock.IconsLocked;
@@ -44,20 +52,22 @@ public class DockService
 
     public void RemoveItem(int index)
     {
+        if (index < 0 || index >= _dock.Items.Count || _dock.Items[index] is DockSettingsItemModel)
+            return;
         _dock.RemoveItem(index);
-        SaveChanges();
+        SaveItemChanges();
     }
 
     public void SwapItems(int firstItemIdx, int secondItemIdx)
     {
         _dock.SwapItems(firstItemIdx, secondItemIdx);
-        SaveChanges();
+        SaveItemChanges();
     }
 
     public void MoveItem(int fromIndex, int toIndex)
     {
         _dock.MoveItem(fromIndex, toIndex);
-        SaveChanges();
+        SaveItemChanges();
     }
 
     public void SetDockPosition(double positionX, double positionY)

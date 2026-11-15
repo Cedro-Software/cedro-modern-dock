@@ -8,6 +8,42 @@ using CedroModernDock.Infrastructure.Windows.Persistence;
 /// <summary>Direct port of JsonDockRepositoryTest.java</summary>
 public class JsonDockRepositoryTest
 {
+    [Fact]
+    public void SavesAndLoadsShortcutLaunchDetails()
+    {
+        var repository = new JsonDockRepository(Path.Combine(_tempDir, "config.json"));
+        var model = new DockModel();
+        model.AddItem(new DockProgramItemModel("Editor", @"C:\tools\Editor.exe")
+        {
+            LaunchPath = @"C:\tools\Update.exe",
+            Arguments = "--profile-directory=\"Profile 2\"",
+            WorkingDirectory = @"C:\working folder"
+        });
+
+        repository.Save(model);
+        var item = Assert.IsType<DockProgramItemModel>(Assert.Single(repository.Load().Items));
+
+        Assert.Equal(@"C:\tools\Editor.exe", item.ExecutablePath);
+        Assert.Equal(@"C:\tools\Update.exe", item.LaunchPath);
+        Assert.Equal("--profile-directory=\"Profile 2\"", item.Arguments);
+        Assert.Equal(@"C:\working folder", item.WorkingDirectory);
+        CleanupTempDir();
+    }
+
+    [Fact]
+    public void LoadsProgramWithoutLaunchDetailsUsingCompatibleDefaults()
+    {
+        string configPath = Path.Combine(_tempDir, "config.json");
+        File.WriteAllText(configPath, """{"items":[{"@type":"programItem","label":"Editor","path":"C:\\tools\\Editor.exe"}]}""");
+
+        var item = Assert.IsType<DockProgramItemModel>(Assert.Single(new JsonDockRepository(configPath).Load().Items));
+
+        Assert.Equal("", item.Arguments);
+        Assert.Null(item.WorkingDirectory);
+        Assert.Null(item.LaunchPath);
+        CleanupTempDir();
+    }
+
     private string _tempDir = null!;
 
     public JsonDockRepositoryTest()

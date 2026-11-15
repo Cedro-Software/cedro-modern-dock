@@ -6,6 +6,41 @@ using CedroModernDock.Infrastructure.Windows.Native;
 public class ShortcutResolverTest
 {
     [Fact]
+    public void ResolvesShortcutArgumentsAndWorkingDirectoryWithoutChangingQuoting()
+    {
+        string dir = Path.Combine(Path.GetTempPath(), "CedroShortcutTest_" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(dir);
+        try
+        {
+            string exe = Path.Combine(dir, "test tool.exe");
+            string link = Path.Combine(dir, "profile.lnk");
+            const string arguments = "--profile-directory=\"Profile 2\" \"a file.txt\" \"\"";
+            File.WriteAllText(exe, "");
+            dynamic shell = Activator.CreateInstance(Type.GetTypeFromProgID("WScript.Shell")!)!;
+            try
+            {
+                dynamic shortcut = shell.CreateShortcut(link);
+                try
+                {
+                    shortcut.TargetPath = exe;
+                    shortcut.Arguments = arguments;
+                    shortcut.WorkingDirectory = dir;
+                    shortcut.Save();
+                }
+                finally { System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shortcut); }
+            }
+            finally { System.Runtime.InteropServices.Marshal.FinalReleaseComObject(shell); }
+
+            var resolved = Assert.IsType<ShortcutResolver.ResolvedShortcut>(ShortcutResolver.Resolve(link));
+
+            Assert.Equal(exe, resolved.ExecutablePath);
+            Assert.Equal(arguments, resolved.Arguments);
+            Assert.Equal(dir, resolved.WorkingDirectory);
+        }
+        finally { Directory.Delete(dir, recursive: true); }
+    }
+
+    [Fact]
     public void ReturnsTheExecutableForAnExeFile()
     {
         string dir = Path.Combine(Path.GetTempPath(), "CedroShortcutTest_" + Guid.NewGuid().ToString("N"));

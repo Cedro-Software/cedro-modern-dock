@@ -154,10 +154,10 @@ public partial class MainWindow
         _ => null
     };
 
-    private static void LaunchExecutable(string path)
+    private void LaunchExecutable(string path)
     {
-        try { Process.Start(new ProcessStartInfo(path) { UseShellExecute = true }); }
-        catch { /* best-effort */ }
+        _appServices?.ItemActionService.Execute(
+            new DockProgramItemModel(Path.GetFileNameWithoutExtension(path), path), () => { });
     }
 
     /// <summary>Asks every window of the program to close (WM_CLOSE, like the taskbar).</summary>
