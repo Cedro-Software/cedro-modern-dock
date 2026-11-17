@@ -45,8 +45,19 @@ public sealed class DockWindowBehavior : IDisposable
         _subclassProc = new SubclassProc(HandleMessage);
         _subclassed = Comctl32.SetWindowSubclass(_hwnd, _subclassProc, UIntPtr.Zero, IntPtr.Zero);
 
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged += OnDisplaySettingsChanged;
+
         _onStatus?.Invoke($"HWND=0x{_hwnd:X} | Subclass={(_subclassed ? "OK" : "FAIL")}");
     }
+
+    /// <summary>
+    /// Raised when monitors are added, removed, moved or rescaled. The desktop
+    /// parent then gets a new origin, which shifts the dock on screen: the
+    /// owner should re-apply its position. May be raised off the UI thread.
+    /// </summary>
+    public event Action? DisplayChanged;
+
+    private void OnDisplaySettingsChanged(object? sender, EventArgs e) => DisplayChanged?.Invoke();
 
     private void ApplyExtendedStyles()
     {
@@ -60,10 +71,11 @@ public sealed class DockWindowBehavior : IDisposable
     }
 
     /// <summary>
-    /// Parents the dock to the desktop icons window. The dock stays a popup
-    /// window (screen coordinates and layered transparency are preserved), but
-    /// being owned by the desktop it survives "Show Desktop" and sits behind
-    /// every normal window — exactly like the desktop icons.
+    /// Parents the dock to the desktop icons window. The dock keeps its layered
+    /// transparency, and being attached to the desktop it survives "Show
+    /// Desktop" and sits behind every normal window, exactly like the desktop
+    /// icons. Positions set afterwards are relative to the parent: see
+    /// <see cref="ScreenToPositionCoordinates"/>.
     /// </summary>
     private void AttachToDesktop()
     {
@@ -76,6 +88,24 @@ public sealed class DockWindowBehavior : IDisposable
 
         User32.SetParent(_hwnd, desktop);
         _onStatus?.Invoke($"Attached to desktop 0x{desktop:X}");
+    }
+
+    /// <summary>
+    /// Converts a screen point (physical px) into the coordinates SetWindowPos
+    /// expects for the dock. Once parented to the desktop WorkerW, those are
+    /// relative to the WorkerW client area, whose origin is the top-left corner
+    /// of the virtual screen: (0,0) on a single display, but e.g. (-1920,-126)
+    /// with a monitor left of the primary one or one placed higher. Without
+    /// this conversion the dock lands off every screen in such layouts.
+    /// </summary>
+    public (int X, int Y) ScreenToPositionCoordinates(int x, int y)
+    {
+        if (_hwnd == IntPtr.Zero) return (x, y);
+        IntPtr parent = User32.GetAncestor(_hwnd, User32.GA_PARENT);
+        if (parent == IntPtr.Zero || parent == User32.GetDesktopWindow()) return (x, y);
+
+        var point = new POINT { X = x, Y = y };
+        return User32.ScreenToClient(parent, ref point) ? (point.X, point.Y) : (x, y);
     }
 
     /// <summary>
@@ -144,6 +174,9 @@ public sealed class DockWindowBehavior : IDisposable
 
     public void Dispose()
     {
+        Microsoft.Win32.SystemEvents.DisplaySettingsChanged -= OnDisplaySettingsChanged;
+        DisplayChanged = null;
+
         if (_subclassed && _subclassProc != null && _hwnd != IntPtr.Zero)
         {
             Comctl32.RemoveWindowSubclass(_hwnd, _subclassProc, UIntPtr.Zero);

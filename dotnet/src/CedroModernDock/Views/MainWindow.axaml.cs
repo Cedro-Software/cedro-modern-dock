@@ -95,6 +95,7 @@ public partial class MainWindow : Window
         _dockBehavior = new DockWindowBehavior(handle.Handle, UpdateStatus);
         _discreetWindowHandle = handle.Handle;
         _dockBehavior.Apply();
+        _dockBehavior.DisplayChanged += OnDisplayChanged;
 
         // Initialize the dock ViewModel (loads items, starts indicator watcher).
         if (DataContext is MainWindowViewModel vm)
@@ -139,7 +140,26 @@ public partial class MainWindow : Window
         var (x, y) = _appServices.PositioningService.ResolvePosition(
             (ClientSize.Width - 2 * headroom) * scale, (ClientSize.Height - 2 * headroom) * scale);
         int offset = ZoomHeadroomPixels;
-        Position = new PixelPoint((int)x - offset, (int)y - offset);
+        int screenX = (int)x - offset, screenY = (int)y - offset;
+        // The dock is parented to the desktop, so the Position setter takes
+        // coordinates relative to it, while the getter keeps reporting screen
+        // coordinates. They differ whenever a monitor sits left of or above
+        // the primary one.
+        var (targetX, targetY) = _dockBehavior?.ScreenToPositionCoordinates(screenX, screenY) ?? (screenX, screenY);
+        Position = new PixelPoint(targetX, targetY);
+    }
+
+    /// <summary>
+    /// Monitors were plugged, unplugged or rearranged: the desktop parent
+    /// moved, so re-apply the position once the shell has settled.
+    /// </summary>
+    private void OnDisplayChanged()
+    {
+        Dispatcher.UIThread.Post(() =>
+        {
+            _positionPersistTimer.Stop();
+            DispatcherTimer.RunOnce(() => ApplyDockPosition(force: true), TimeSpan.FromMilliseconds(500));
+        });
     }
 
     private int ZoomHeadroomPixels => (int)Math.Round(DockBar.Margin.Left * RenderScaling);
@@ -500,6 +520,8 @@ public partial class MainWindow : Window
         HidePreview();
         if (DataContext is MainWindowViewModel vm)
             vm.Shutdown();
+        if (_dockBehavior != null)
+            _dockBehavior.DisplayChanged -= OnDisplayChanged;
         _dockBehavior?.Dispose();
         _dockBehavior = null;
         base.OnClosed(e);
