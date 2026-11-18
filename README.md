@@ -48,17 +48,6 @@
 - **Scaled displays:** The dock now stays correctly centered on displays with Windows scaling enabled.
 <br>
 
-## What's new in v1.2
-
-- **Live window previews:** Hover a running app to see its open windows in real time, click one to bring it forward.
-- **Running apps you haven't pinned:** Apps currently open but not pinned show up on the dock now.
-- **Customize your icons:** iOS-style color tint with 12 presets or pick your own color.
-- **Drag to reorder:** Now you can rearrange your dock shortcuts right in the Settings list by dragging them around.
-- **Vertical dock:** Arrange the dock vertically on either side of the screen.
-- **Updates that keep your setup:** - Upgrading to a new version replaces the app but keeps your shortcuts and settings.
-- **Long-awaited feature:** Now CTRL + D does NOT minimizes the Dock anymore. It remains on the Desktop.
-<br>
-
 ## Supported Languages
 
 - 🇺🇸  English
