@@ -1,6 +1,12 @@
 <!-- GETTING STARTED -->
 # How To Contribute
 > Only for those who wish to contribute in the project's coding, none of this is required for you to do if you [just want to download it](https://github.com/arthurdeka/cedro-modern-dock/releases)
+
+### Pull Request Rules
+
+- **One pull request per feature.** Each pull request must contain a single feature or fix; do not bundle unrelated changes together.
+- **Always branch from `main`.** Create your branch from the latest `main` and open the pull request based on it.
+
 ### Understand the project architecture:
 
 The project follows a layered architecture:
@@ -30,7 +36,7 @@ Before you begin, ensure you have the following installed on your system: (requi
 3. Run `dotnet run --project src/CedroModernDock` to run the program
 4. Make desired changes
 5. Commit your changes
-6. Open a pull request
+6. Open a pull request (see [Pull Request Rules](#pull-request-rules))
 
 <br>
 
