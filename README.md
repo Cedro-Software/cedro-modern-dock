@@ -14,7 +14,7 @@
 
 > ## How To Install
 > 1. Go to [Releases](https://github.com/arthurdeka/cedro-modern-dock/releases):
-> 2. Download the latest `CedroModernDock-1.2.0-x64.msi` file
+> 2. Download the latest `CedroModernDock-1.3.0-x64.msi` file
 > 3. Execute and install
 <br>
 
